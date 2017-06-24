@@ -1,0 +1,64 @@
+{
+	"name"            : "webtorrent-dht",
+	"title"           : "WebTorrent DHT",
+	"description"     : "This is an example implementation of something that might become WebTorrent DHT. It is based on BitTorrent DHT and is extended in a way that will work both in Node.js and modern browsers while keeping BitTorrent DHT interface.",
+	"version"         : "0.1.0",
+	"homepage"        : "https://github.com/nazar-pc/webtorrent-dht",
+	"author"          : {
+		"name"  : "Nazar Mokrynskyi",
+		"email" : "nazar@mokrynskyi.com",
+		"url"   : "https://cleverstyle.org"
+	},
+	"maintainers"     : [
+		{
+			"name"  : "Nazar Mokrynskyi",
+			"email" : "nazar@mokrynskyi.com",
+			"url"   : "https://cleverstyle.org"
+		}
+	],
+	"repository"      : {
+		"type" : "git",
+		"url"  : "git://github.com/nazar-pc/webtorrent-dht.git"
+	},
+	"licenses"        : [
+		{
+			"type" : "MIT",
+			"url"  : "https://github.com/nazar-pc/webtorrent-dht/blob/master/license.txt"
+		}
+	],
+	"bugs"            : "https://github.com/nazar-pc/webtorrent-dht/issues",
+	"main"            : "webtorrent-dht.js",
+	"browser"         : {
+		"ws" : false
+	},
+	"files"           : [
+		"dist",
+		"k-rpc-socket-webrtc.js",
+		"k-rpc-webrtc.js",
+		"webrtc-socket.js"
+	],
+	"dependencies"    : {
+		"bittorrent-dht" : "^7.6.0",
+		"debug"          : "^2.6.8",
+		"inherits"       : "^2.0.3",
+		"isipaddress"    : "0.0.2",
+		"k-rpc"          : "^4.1.0",
+		"k-rpc-socket"   : "^1.7.0",
+		"lz-string"      : "^1.4.4",
+		"randombytes"    : "^2.0.5",
+		"simple-peer"    : "^8.1.1",
+		"wrtc"           : "0.0.62",
+		"ws"             : "^3.0.0"
+	},
+	"devDependencies" : {
+		"browserify"  : "^14.4.0",
+		"del"         : "^3.0.0",
+		"gulp"        : "^3.9.1",
+		"gulp-rename" : "^1.2.2",
+		"gulp-tap"    : "^1.0.1",
+		"gulp-uglify" : "^3.0.0"
+	},
+	"jspm"            : {
+		"main" : "dist/bittorrent-dht.browser.min.js"
+	}
+}
