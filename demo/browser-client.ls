@@ -5,7 +5,6 @@
  * @license   MIT License, see license.txt
  */
 window.dht = new webtorrent_dht(
-	k					: 3
 	nodes				: [
 		{
 			host	: '127.0.0.1'

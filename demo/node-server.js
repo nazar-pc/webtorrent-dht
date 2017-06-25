@@ -9,7 +9,6 @@
   var DHT;
   DHT = require('../webtorrent-dht');
   global.dht = new DHT({
-    k: 3,
     nodes: [],
     simple_peer_opts: {
       config: {

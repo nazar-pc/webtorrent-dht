@@ -7,7 +7,6 @@
  */
 (function(){
   window.dht = new webtorrent_dht({
-    k: 3,
     nodes: [{
       host: '127.0.0.1',
       port: 16881

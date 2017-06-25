@@ -14,6 +14,8 @@ Also in order to reduce browser build size by ~3x (down to 40kB min+gz) followin
 ## How to use
 Assuming you're familiar with [bittorrent-dht](https://github.com/webtorrent/bittorrent-dht) usage is the same with 2 differences: bootstrap nodes are WebSocket nodes and by binding to address and port effectively WebSocket server is started. Everything else is happening under the hood.
 
+Also `K` in WebTorrent DHT defaults to `2`, which is much more reasonable for WebRTC realities.
+
 Additional options specific to WebTorrent DHT are:
 * `simple_peer_opts` - Object as in [simple-peer constructor](https://github.com/feross/simple-peer#peer--new-simplepeeropts), used by `webrtc-socket`
 * `ws_address` - Object with keys `address` and `port` that corresponds to running WebSocket server (specify this in case when publicly accessible address/port are different from those where WebSocket server is listening on), used by `webrtc-socket`

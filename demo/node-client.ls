@@ -7,7 +7,6 @@
 DHT = require('../webtorrent-dht')
 
 global.dht = new DHT(
-	k					: 3
 	nodes				: [
 		{
 			host	: '127.0.0.1'

@@ -9,6 +9,7 @@ k-rpc				= require('k-rpc')
 k-rpc-socket-webrtc	= require('./k-rpc-socket-webrtc')
 randombytes			= require('randombytes')
 module.exports		= k-rpc-webrtc
+K					= 2
 noop				= ->
 # TODO: Hopefully when things settle down we'll have some public bootstrap nodes here
 BOOTSTRAP_NODES		= [
@@ -28,6 +29,7 @@ BOOTSTRAP_NODES		= [
 	options.id			= options.id || options.nodeId || randombytes(20)
 	options.krpcSocket	= options.krpcSocket || k-rpc-socket-webrtc(options)
 	options.bootstrap	= options.nodes || options.bootstrap || BOOTSTRAP_NODES
+	options.k 			= options.k || K
 	k-rpc.call(@, options)
 	# Avoid querying disconnected nodes
 	@socket.socket.on('node_disconnected', (id) !~>

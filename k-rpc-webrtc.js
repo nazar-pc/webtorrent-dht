@@ -6,12 +6,13 @@
  * @license   MIT License, see license.txt
  */
 (function(){
-  var inherits, kRpc, kRpcSocketWebrtc, randombytes, noop, BOOTSTRAP_NODES;
+  var inherits, kRpc, kRpcSocketWebrtc, randombytes, K, noop, BOOTSTRAP_NODES;
   inherits = require('inherits');
   kRpc = require('k-rpc');
   kRpcSocketWebrtc = require('./k-rpc-socket-webrtc');
   randombytes = require('randombytes');
   module.exports = kRpcWebrtc;
+  K = 2;
   noop = function(){};
   BOOTSTRAP_NODES = [{
     host: '127.0.0.1',
@@ -30,6 +31,7 @@
     options.id = options.id || options.nodeId || randombytes(20);
     options.krpcSocket = options.krpcSocket || kRpcSocketWebrtc(options);
     options.bootstrap = options.nodes || options.bootstrap || BOOTSTRAP_NODES;
+    options.k = options.k || K;
     kRpc.call(this, options);
     this.socket.socket.on('node_disconnected', function(id){
       this$.nodes.remove(Buffer.from(id, 'hex'));

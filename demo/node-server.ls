@@ -7,7 +7,6 @@
 DHT = require('../webtorrent-dht')
 
 global.dht = new DHT(
-	k					: 3
 	nodes				: [] # Default bootstrap node is 127.0.0.1:16881, which in this case is the node itself, so let's not connect to itself
 	simple_peer_opts	:
 		config	:

@@ -6,7 +6,7 @@
  * @license   MIT License, see license.txt
  */
 (function(){
-  var bencode, debug, inherits, isIP, kRpcSocket, webrtcSocket, noop, K, x$, slice$ = [].slice;
+  var bencode, debug, inherits, isIP, kRpcSocket, webrtcSocket, noop, x$, slice$ = [].slice;
   bencode = require('bencode');
   debug = require('debug')('webtorrent-dht');
   inherits = require('inherits');
@@ -15,7 +15,6 @@
   webrtcSocket = require('./webrtc-socket');
   module.exports = kRpcSocketWebrtc;
   noop = function(){};
-  K = 20;
   function parse_nodes(buffer){
     var nodes, res$, i$, to$, i;
     res$ = [];
@@ -67,7 +66,10 @@
     if (!(this instanceof kRpcSocketWebrtc)) {
       return new kRpcSocketWebrtc(options);
     }
-    this.k = options.k || K;
+    if (!options.k) {
+      throw new Error('k-rpc-socket-webrtc requires options.k to be specified explicitly');
+    }
+    this.k = options.k;
     if (!options.id) {
       throw new Error('k-rpc-socket-webrtc requires options.id to be specified explicitly');
     }

@@ -12,7 +12,6 @@ k-rpc-socket	= require('k-rpc-socket')
 webrtc-socket	= require('./webrtc-socket')
 module.exports	= k-rpc-socket-webrtc
 noop			= ->
-K				= 20
 function parse_nodes (buffer)
 	nodes	=
 		for i from 0 til buffer.length by 26
@@ -48,7 +47,9 @@ function encode_info (ip, port)
 !function k-rpc-socket-webrtc (options = {})
 	if !(@ instanceof k-rpc-socket-webrtc)
 		return new k-rpc-socket-webrtc(options)
-	@k	= options.k || K
+	if !options.k
+		throw new Error('k-rpc-socket-webrtc requires options.k to be specified explicitly')
+	@k	= options.k
 	if !options.id
 		throw new Error('k-rpc-socket-webrtc requires options.id to be specified explicitly')
 	if Buffer.isBuffer(options.id)
