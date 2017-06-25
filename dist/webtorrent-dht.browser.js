@@ -131,13 +131,16 @@
         function fn$(i, peer){
           var this$ = this;
           return new Promise(function(resolve){
-            kRpcSocket.prototype.query.call(this$, peer, {
+            var signal, query;
+            signal = signals[i];
+            query = {
               q: 'peer_connection',
               a: {
                 id: this$.id,
-                signal: signals[i]
+                signal: signal
               }
-            }, function(error, response){
+            };
+            this$.query(peer, query, function(error, response){
               resolve({
                 error: error,
                 response: response
@@ -183,6 +186,7 @@
           var x$, peer_connection;
           x$ = peer_connection = this$.socket.prepare_connection(true);
           x$.on('signal', function(signal){
+            signal.id = this$.id;
             resolve({
               peer_connection: peer_connection,
               signal: signal
@@ -193,7 +197,7 @@
           });
         }
       }.call(this))).then(function(connections){
-        var peer_connections, signals, id, i$, len$, connection;
+        var peer_connections, signals, i$, len$, connection;
         connections = connections.filter(Boolean);
         /**
          * Inject signal data for K connections for queried node to pass them to target nodes and get signal data from them, so that we can afterwards
@@ -201,13 +205,10 @@
          */
         peer_connections = [];
         signals = [];
-        id = this$.id.toString('hex');
         for (i$ = 0, len$ = connections.length; i$ < len$; ++i$) {
           connection = connections[i$];
           peer_connections.push(connection.peer_connection);
-          signals.push(Object.assign({
-            id: id
-          }, connection.signal));
+          signals.push(connection.signal);
         }
         query.a.signals = signals;
         kRpcSocket.prototype.query.call(this$, peer, query, function(error, response){
@@ -233,13 +234,13 @@
             }
             return results$;
             function fn$(i, signal){
-              var peer_connection, this$ = this;
+              var signal_id_hex, peer_connection, this$ = this;
               if (signal) {
-                signal.id = signal.id.toString();
-                if (signal.id === host_id) {
+                signal_id_hex = signal.id.toString('hex');
+                if (signal_id_hex === host_id) {
                   return null;
                 } else {
-                  peer_connection = this.socket.get_id_mapping(signal.id);
+                  peer_connection = this.socket.get_id_mapping(signal_id_hex);
                   if (peer_connection) {
                     peer_connections[i].destroy();
                     return encode_info(peer_connection.remoteAddress, peer_connection.remotePort);
@@ -248,7 +249,7 @@
                       var x$, peer_connection;
                       x$ = peer_connection = peer_connections[i];
                       x$.on('connect', function(){
-                        this$.socket.add_id_mapping(signal.id, peer_connection);
+                        this$.socket.add_id_mapping(signal_id_hex, peer_connection);
                         if (response.r.nodes) {
                           resolve(encode_node(response.r.nodes.slice(i * 26, i * 26 + 20), peer_connection.remoteAddress, peer_connection.remotePort));
                         } else if (response.r.values) {
@@ -283,7 +284,7 @@
     }
   };
   x$.emit = function(event){
-    var args, res$, i$, to$, message, peer, ref$, ref1$, ref2$, id, signal, x$, peer_connection, ref3$, this$ = this;
+    var args, res$, i$, to$, message, peer, ref$, ref1$, ref2$, signal, signal_id_hex, x$, peer_connection, ref3$, this$ = this;
     res$ = [];
     for (i$ = 1, to$ = arguments.length; i$ < to$; ++i$) {
       res$.push(arguments[i$]);
@@ -298,23 +299,22 @@
       switch ((ref1$ = message.q) != null && (typeof ref1$.toString == 'function' && ref1$.toString())) {
       case 'peer_connection':
         if (((ref2$ = message.a) != null ? ref2$.signal : void 8) != null) {
-          id = this.id.toString('hex');
           signal = message.a.signal;
-          signal.id = signal.id.toString();
-          if (signal.id === id || this.socket.get_id_mapping(id)) {
+          signal_id_hex = signal.id.toString('hex');
+          if (signal_id_hex === this.id.toString('hex') || this.socket.get_id_mapping(signal_id_hex)) {
             this.response(peer, message, {
               id: this.id,
               signal: {
-                id: id
+                id: this.id
               }
             });
           } else {
             x$ = peer_connection = this.socket.prepare_connection(false);
             x$.on('connect', function(){
-              this$.socket.add_id_mapping(signal.id, peer_connection);
+              this$.socket.add_id_mapping(signal_id_hex, peer_connection);
             });
             x$.on('signal', function(signal){
-              signal.id = id;
+              signal.id = this$.id;
               this$.response(peer, message, {
                 id: this$.id,
                 signal: signal

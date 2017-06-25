@@ -78,7 +78,7 @@ find_node, get_peers and get queries and responses
 However, before this can happen with WebRTC the querying node and target remote node need to exchange signalling messages.
 
 To make this process faster and easier, to each of mentioned queries the querying node must add an argument "signals" with an array of up to K SDP offer signaling messages.
-Each signaling message is a dictionary with keys "id" (hexadecimal string, node ID of the querying node), "type" (with value "offer") and "sdp" (session description).
+Each signaling message is a dictionary with keys "id" (node ID of the querying node), "type" (with value "offer") and "sdp" (session description).
 
 Queried node after collecting the list of remote nodes in "nodes" or "values" keys of the response must send a "peer_connection" query to each of them.
 "peer_connection" query has two arguments, "id" containing the node ID of the querying node, and "signal" which corresponds to the single item from "signals" array of the original query.
