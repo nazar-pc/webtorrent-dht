@@ -12,7 +12,7 @@
 Abstract
 ========
 
-This document describes an alternative flavor of the BitTorrent DHT that can be used on only in standalone apps, but also in modern web browsers.
+This document describes an alternative flavor of the BitTorrent DHT that can be used not only in standalone apps, but also in modern web browsers.
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL
 NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and
@@ -41,7 +41,7 @@ WebSocket server on the node of the second type is listening on specific address
 As soon as new WebSocket connection is established it is only used for exchanging signaling data necessary for WebRTC.
 More specifically:
 
-- node that is running WebSocket server is creating `RTCPeerConnection`_ and sends to the WebSocket client bencoded offer message (dictionary with key "type" with value "offer" and key "sdp" with session description)
+- node that is running WebSocket server is creating `RTCPeerConnection`_ and sends to the WebSocket client bencoded SDP offer message. Message is a dictionary with key "type" with value "offer" and key "sdp" with session description and optional key "extensions" with an array of extensions supported (see next section for details)
 
 - after WebSocket client receives SDP offer message it will send SPD answer message
 
@@ -49,10 +49,10 @@ More specifically:
 
 ::
 
-  Offer = {"type" : "offer", "sdp" : "<session description>"}
+  Offer = {"type" : "offer", "sdp" : "<session description>", "extensions" : []}
 
 
-  Answer = {"type" : "answer", "sdp" : "<session description>"}
+  Answer = {"type" : "answer", "sdp" : "<session description>", "extensions" : []}
 
 After establishing WebRTC connection a node that is also running WebSocket server should send a bencoded message containing a dictionary with key "ws_server" which in turn contains a dictionary with keys "host" and "port" that correspond to the publicly accessible host and port of running WebSocket server.
 This information can be used to establish direct connection later, for instance, to use host and port as bootstrap node:
@@ -64,6 +64,18 @@ Example
   WebSocket server info = {"ws_server" : {"host" : "127.0.0.1" , "port" : 16881}}
 
   bencoded = d9:ws_serverd4:host9:127.0.0.14:porti16881eee
+
+
+Extensions
+==========
+"extensions" key sent alongside WebRTC signaling data is an array of arbitrary elements (depends on extension implementation), each of which represents a single extension.
+When node supports an extension (unsupported extensions are silently ignored) sent with SDP offer message and is willing to use it, node will add corresponding extension to "extensions" array of SDP answer message.
+
+When connection is established, communication between nodes might differ from communication between nodes that do not use any extensions.
+
+Compression is an example of useful feature implemented as an extension. As soon as both nodes support some specific compression method they will send compressed messages instead of raw messages in order to reduce payload size.
+
+Extensions are not limited to transport layer and can be used to extend DHT protocol with additional methods and other features. However, each node must support operation without any extensions being used.
 
 BitTorrent DHT protocol extension
 =================================
@@ -78,7 +90,7 @@ find_node, get_peers and get queries and responses
 However, before this can happen with WebRTC the querying node and target remote node need to exchange signalling messages.
 
 To make this process faster and easier, to each of mentioned queries the querying node must add an argument "signals" with an array of up to K SDP offer signaling messages.
-Each signaling message is a dictionary with keys "id" (node ID of the querying node), "type" (with value "offer") and "sdp" (session description).
+Each signaling message is a dictionary with keys "id" (node ID of the querying node), "type" (with value "offer"), "sdp" (session description) and optional "extensions" (array of supported extensions).
 
 Queried node after collecting the list of remote nodes in "nodes" or "values" keys of the response must send a "peer_connection" query to each of them.
 "peer_connection" query has two arguments, "id" containing the node ID of the querying node, and "signal" which corresponds to the single item from "signals" array of the original query.
@@ -89,9 +101,9 @@ This way querying node will be able to immediately establish connections to the 
 
 ::
 
-  peer_connection Query = {"id" : "<querying node id>", "signal" : {"id" : "<original querying node id>", "type" : "offer", "sdp" : "<session description>"}}
+  peer_connection Query = {"id" : "<querying node id>", "signal" : {"id" : "<original querying node id>", "type" : "offer", "sdp" : "<session description>", "extensions" : []}}
 
-  Response = {"id" : "<querying node id>", "signal" : {"id" : "<queried node id>", "type" : "answer", "sdp" : "<session description>"}}
+  Response = {"id" : "<querying node id>", "signal" : {"id" : "<queried node id>", "type" : "answer", "sdp" : "<session description>", "extensions" : []}}
 
 It might sometimes happen that remote node and original querying node already have direct connection.
 In this case remote node might skip signaling message and only put its node ID into "signal" key in response to the "peer_connection" query and this will tell original querying node to look for an existing established connection to this node:
