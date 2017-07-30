@@ -57,6 +57,7 @@ function encode_info (ip, port)
 	else
 		@id	= Buffer.from(options.id, 'hex')
 	@_id_space		= options.id.length
+	options			= Object.assign({}, options)
 	options.socket	= options.socket || webrtc-socket(options)
 	options.isIP	= isIP
 	k-rpc-socket.call(@, options)

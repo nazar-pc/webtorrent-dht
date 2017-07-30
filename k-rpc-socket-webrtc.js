@@ -79,6 +79,7 @@
       this.id = Buffer.from(options.id, 'hex');
     }
     this._id_space = options.id.length;
+    options = Object.assign({}, options);
     options.socket = options.socket || webrtcSocket(options);
     options.isIP = isIP;
     kRpcSocket.call(this, options);

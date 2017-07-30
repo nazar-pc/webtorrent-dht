@@ -16,7 +16,8 @@ noop			= ->
 !function webtorrent-dht (options = {})
 	if !(@ instanceof webtorrent-dht)
 		return new webtorrent-dht(options)
-	options.krpc = options.krpc || k-rpc-webrtc(options)
+	options			= Object.assign({}, options)
+	options.krpc	= options.krpc || k-rpc-webrtc(options)
 	bittorrent-dht.call(@, options)
 
 inherits(noop, bittorrent-dht)

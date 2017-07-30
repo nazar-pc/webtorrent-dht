@@ -20,6 +20,7 @@
     if (!(this instanceof webtorrentDht)) {
       return new webtorrentDht(options);
     }
+    options = Object.assign({}, options);
     options.krpc = options.krpc || kRpcWebrtc(options);
     bittorrentDht.call(this, options);
   }
