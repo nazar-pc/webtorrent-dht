@@ -15,20 +15,20 @@
   webrtcSocket = require('./webrtc-socket');
   module.exports = kRpcSocketWebrtc;
   noop = function(){};
-  function parse_nodes(buffer){
-    var nodes, res$, i$, to$, i;
+  function parse_nodes(buffer, id_space){
+    var nodes, res$, i$, step$, to$, i;
     res$ = [];
-    for (i$ = 0, to$ = buffer.length; i$ < to$; i$ += 26) {
+    for (i$ = 0, to$ = buffer.length, step$ = id_space + 6; step$ < 0 ? i$ > to$ : i$ < to$; i$ += step$) {
       i = i$;
-      res$.push(parse_node(buffer.slice(i, i + 26)));
+      res$.push(parse_node(buffer.slice(i, i + id_space + 6), id_space));
     }
     nodes = res$;
     return nodes.filter(Boolean);
   }
-  function parse_node(buffer){
+  function parse_node(buffer, id_space){
     var id, ref$, host, port;
-    id = buffer.slice(0, 20);
-    ref$ = parse_info(buffer.slice(20, 26)), host = ref$.host, port = ref$.port;
+    id = buffer.slice(0, id_space);
+    ref$ = parse_info(buffer.slice(id_space, id_space + 6)), host = ref$.host, port = ref$.port;
     return {
       id: id,
       host: host,
@@ -48,7 +48,7 @@
     var info;
     id = Buffer.from(id);
     info = encode_info(ip, port);
-    return Buffer.concat([id, info], 26);
+    return Buffer.concat([id, info]);
   }
   function encode_info(ip, port){
     var x$;
@@ -78,6 +78,7 @@
     } else {
       this.id = Buffer.from(options.id, 'hex');
     }
+    this._id_space = options.id.length;
     options.socket = options.socket || webrtcSocket(options);
     options.isIP = isIP;
     kRpcSocket.call(this, options);
@@ -109,8 +110,8 @@
         return;
       }
       if (response.nodes) {
-        if (response.nodes.length / 26 > signals.length) {
-          response.nodes.length = signals.length * 26;
+        if (response.nodes.length / (this._id_space + 6) > signals.length) {
+          response.nodes.length = signals.length * (this._id_space + 6);
         }
         peers = parse_nodes(response.nodes);
       } else if (response.values) {
@@ -251,7 +252,7 @@
                       x$.on('connect', function(){
                         this$.socket.add_id_mapping(signal_id_hex, peer_connection);
                         if (response.r.nodes) {
-                          resolve(encode_node(response.r.nodes.slice(i * 26, i * 26 + 20), peer_connection.remoteAddress, peer_connection.remotePort));
+                          resolve(encode_node(response.r.nodes.slice(i * this$._id_space + 6, i * (this$._id_space + 6) + this$._id_space), peer_connection.remoteAddress, peer_connection.remotePort));
                         } else if (response.r.values) {
                           resolve(encode_info(peer_connection.remoteAddress, peer_connection.remotePort));
                         }
@@ -270,7 +271,7 @@
           }.call(this$))).then(function(peers){
             peers = peers.filter(Boolean);
             if (response.r.nodes) {
-              response.r.nodes = Buffer.concat(peers, peers.length * 26);
+              response.r.nodes = Buffer.concat(peers, peers.length * (this$._id_space + 6));
             } else if (response.r.values) {
               response.r.values = peers;
             }

@@ -28,7 +28,7 @@
       return new kRpcWebrtc(options);
     }
     options = Object.assign({}, options);
-    options.id = options.id || options.nodeId || randombytes(20);
+    options.id = options.id || options.nodeId || randombytes(options.idSpace || 20);
     options.krpcSocket = options.krpcSocket || kRpcSocketWebrtc(options);
     options.bootstrap = options.nodes || options.bootstrap || BOOTSTRAP_NODES;
     options.k = options.k || K;
