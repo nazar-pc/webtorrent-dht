@@ -24,7 +24,7 @@ There are simple demos in `demo` directory, you can run them in browser and on t
 
 For debugging purposes run on Node as following:
 ```bash
-env DEBUG=webtorrent-dht node demo/node-server.js 
+DEBUG=webtorrent-dht node demo/node-server.js 
 ```
 And set on client `debug` localStorage key as following:
 ```javascript
