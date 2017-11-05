@@ -6,14 +6,16 @@
  * @license   MIT License, see license.txt
  */
 (function(){
-  var browserify, del, gulp, rename, tap, uglify, DESTINATION;
+  var browserify, del, gulp, rename, tap, uglifyEs, uglify, DESTINATION, gutil;
   browserify = require('browserify');
   del = require('del');
   gulp = require('gulp');
   rename = require('gulp-rename');
   tap = require('gulp-tap');
-  uglify = require('gulp-uglify');
+  uglifyEs = require('uglify-es');
+  uglify = require('gulp-uglify/composer')(uglifyEs, console);
   DESTINATION = 'dist';
+  gutil = require('gulp-util');
   gulp.task('build', ['clean', 'browserify', 'minify']).task('browserify', ['clean'], function(){
     return gulp.src('webtorrent-dht.js', {
       read: false
@@ -28,7 +30,9 @@
   }).task('clean', function(){
     return del(DESTINATION);
   }).task('minify', ['browserify'], function(){
-    return gulp.src(DESTINATION + "/*.js").pipe(uglify()).pipe(rename({
+    return gulp.src(DESTINATION + "/*.js").pipe(uglify()).on('error', function(err){
+      gutil.log(gutil.colors.red('[Error]'), err.toString());
+    }).pipe(rename({
       suffix: '.min'
     })).pipe(gulp.dest(DESTINATION));
   });

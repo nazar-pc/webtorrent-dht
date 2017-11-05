@@ -27,9 +27,9 @@ BOOTSTRAP_NODES		= [
 		return new k-rpc-webrtc(options)
 	options				= Object.assign({}, options)
 	options.id			= options.id || options.nodeId || randombytes(options.idSpace || 20)
+	options.k 			= options.k || K
 	options.krpcSocket	= options.krpcSocket || k-rpc-socket-webrtc(options)
 	options.bootstrap	= options.nodes || options.bootstrap || BOOTSTRAP_NODES
-	options.k 			= options.k || K
 	k-rpc.call(@, options)
 	# Avoid querying disconnected nodes
 	@socket.socket.on('node_disconnected', (id) !~>

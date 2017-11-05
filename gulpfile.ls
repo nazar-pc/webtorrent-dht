@@ -9,8 +9,11 @@ del			= require('del')
 gulp		= require('gulp')
 rename		= require('gulp-rename')
 tap			= require('gulp-tap')
-uglify		= require('gulp-uglify')
+uglify-es	= require('uglify-es')
+uglify		= require('gulp-uglify/composer')(uglify-es, console)
 DESTINATION	= 'dist'
+
+gutil = require('gulp-util')
 
 gulp
 	.task('build', ['clean', 'browserify', 'minify'])
@@ -36,6 +39,7 @@ gulp
 	.task('minify', ['browserify'], ->
 		gulp.src("#DESTINATION/*.js")
 			.pipe(uglify())
+			.on('error', (err) !-> gutil.log(gutil.colors.red('[Error]'), err.toString()))
 			.pipe(rename(
 				suffix: '.min'
 			))
