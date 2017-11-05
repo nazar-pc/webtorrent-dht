@@ -87,7 +87,7 @@ k-rpc-socket-webrtc::
 				if response.nodes
 					if response.nodes.length / (@_id_space + 6) > signals.length
 						response.nodes.length = signals.length * (@_id_space + 6)
-					peers = parse_nodes(response.nodes, )
+					peers = parse_nodes(response.nodes, this._id_space)
 				else if response.values
 					if response.values.length > signals.length
 						response.values.length = signals.length
