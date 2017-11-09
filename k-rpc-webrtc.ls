@@ -26,7 +26,7 @@ BOOTSTRAP_NODES		= [
 	if !(@ instanceof k-rpc-webrtc)
 		return new k-rpc-webrtc(options)
 	options				= Object.assign({}, options)
-	options.id			= options.id || options.nodeId || randombytes(options.idSpace || 20)
+	options.id			= options.id || options.nodeId || randombytes(options.idLength || 20)
 	options.k 			= options.k || K
 	options.krpcSocket	= options.krpcSocket || k-rpc-socket-webrtc(options)
 	options.bootstrap	= options.nodes || options.bootstrap || BOOTSTRAP_NODES
