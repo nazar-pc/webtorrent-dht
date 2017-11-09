@@ -3,14 +3,6 @@ This is an example implementation of something that might become WebTorrent DHT.
 
 This project is WIP and not ready for production use.
 
-Following forks are used instead of upstream versions of `bittorrent-dht` and `k-rpc` till linked PRs are merged:
-* https://github.com/nazar-pc/bittorrent-dht/tree/merged-hacks
-  * https://github.com/webtorrent/bittorrent-dht/pull/163
-  * https://github.com/webtorrent/bittorrent-dht/pull/165
-* https://github.com/nazar-pc/k-rpc/tree/merged-hacks
-  * https://github.com/mafintosh/k-rpc/pull/8
-  * https://github.com/mafintosh/k-rpc/pull/9
-
 ## How to use
 Assuming you're familiar with [bittorrent-dht](https://github.com/webtorrent/bittorrent-dht) usage is the same with 2 differences: bootstrap nodes are WebSocket nodes and by binding to address and port effectively WebSocket server is started. Everything else is happening under the hood.
 
