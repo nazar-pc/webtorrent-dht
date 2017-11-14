@@ -179,7 +179,7 @@ k-rpc-socket-webrtc::
 														@socket.add_id_mapping(signal_id_hex, peer_connection)
 														if response.r.nodes
 															resolve(encode_node(
-																response.r.nodes.slice(i * @_id_space + 6, i * (@_id_space + 6) + @_id_space)
+																response.r.nodes.slice(i * (@_id_space + 6), i * (@_id_space + 6) + @_id_space)
 																peer_connection.remoteAddress
 																peer_connection.remotePort
 															))

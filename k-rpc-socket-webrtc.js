@@ -253,7 +253,7 @@
                       x$.on('connect', function(){
                         this$.socket.add_id_mapping(signal_id_hex, peer_connection);
                         if (response.r.nodes) {
-                          resolve(encode_node(response.r.nodes.slice(i * this$._id_space + 6, i * (this$._id_space + 6) + this$._id_space), peer_connection.remoteAddress, peer_connection.remotePort));
+                          resolve(encode_node(response.r.nodes.slice(i * (this$._id_space + 6), i * (this$._id_space + 6) + this$._id_space), peer_connection.remoteAddress, peer_connection.remotePort));
                         } else if (response.r.values) {
                           resolve(encode_info(peer_connection.remoteAddress, peer_connection.remotePort));
                         }
