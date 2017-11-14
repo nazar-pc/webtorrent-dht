@@ -28,6 +28,7 @@
     }
     this.peer_connection_timeout = (options.peer_connection_timeout || PEER_CONNECTION_TIMEOUT) * 1000;
     this.simple_peer_opts = Object.assign({}, SIMPLE_PEER_OPTS, options.simple_peer_opts);
+    this._simple_peer_constructor = options.simple_peer_constructor || simplePeer;
     this.ws_address = options.ws_address;
     this.listeners = [];
     this.peer_connections = {};
@@ -213,7 +214,7 @@
         peer_connection.destroy();
       }
     }, this.peer_connection_timeout);
-    x$ = peer_connection = simplePeer(Object.assign({}, this.simple_peer_opts, {
+    x$ = peer_connection = this._simple_peer_constructor(Object.assign({}, this.simple_peer_opts, {
       initiator: initiator
     }));
     x$.on('connect', function(){

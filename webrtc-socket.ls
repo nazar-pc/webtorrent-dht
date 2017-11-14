@@ -24,6 +24,7 @@ SIMPLE_PEER_OPTS		= {
 		return new webrtc-socket(options)
 	@peer_connection_timeout	= (options.peer_connection_timeout || PEER_CONNECTION_TIMEOUT) * 1000 # needs to be in ms
 	@simple_peer_opts			= Object.assign({}, SIMPLE_PEER_OPTS, options.simple_peer_opts)
+	@_simple_peer_constructor	= options.simple_peer_constructor || simple-peer
 	@ws_address					= options.ws_address
 	@listeners					= []
 	@peer_connections			= {}
@@ -157,7 +158,7 @@ webrtc-socket::
 			if !peer_connection.connected || !peer_connection.id
 				peer_connection.destroy()
 		), @peer_connection_timeout
-		peer_connection = simple-peer(Object.assign({}, @simple_peer_opts, {initiator}))
+		peer_connection = @_simple_peer_constructor(Object.assign({}, @simple_peer_opts, {initiator}))
 			..on('connect', !~>
 				debug('peer connected: %s:%d', peer_connection.remoteAddress, peer_connection.remotePort)
 				@__register_connection(peer_connection)
