@@ -36,6 +36,12 @@
     this.socket.socket.on('node_disconnected', function(id){
       this$.nodes.remove(Buffer.from(id, 'hex'));
     });
+    this.nodes.on('added', function(peer){
+      this$.socket.socket.add_id_mapping(peer.id.toString('hex'), peer.host || peer.address, peer.port);
+    });
+    this.nodes.on('removed', function(peer){
+      this$.socket.socket.del_id_mapping(peer.id.toString('hex'));
+    });
   }
   inherits(noop, kRpc);
   inherits(kRpcWebrtc, noop);

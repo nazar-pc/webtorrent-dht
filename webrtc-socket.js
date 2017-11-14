@@ -200,11 +200,16 @@
       this.pending_peer_connections[address + ":" + port]['catch'](function(){});
     }
   };
+  /**
+   * @param {boolean} initiator
+   *
+   * @return {SimplePeer}
+   */
   x$.prepare_connection = function(initiator){
     var x$, peer_connection, this$ = this;
     debug('prepare connection, initiator: %s', initiator);
     setTimeout(function(){
-      if (!peer_connection.connected) {
+      if (!peer_connection.connected || !peer_connection.id) {
         peer_connection.destroy();
       }
     }, this.peer_connection_timeout);
@@ -258,28 +263,50 @@
     x$.setMaxListeners(0);
     return x$;
   };
-  x$.add_id_mapping = function(id, peer_connection){
-    var this$ = this;
-    if (!(peer_connection instanceof simplePeer)) {
-      peer_connection = Object.assign({
-        host: peer_connection.address
-      }, peer_connection);
-      if (!this.peer_connections[peer_connection.host + ":" + peer_connection.port]) {
-        debug('bad peer specified for id mapping: %oj', peer_connection);
-        return;
-      }
-      peer_connection = this.peer_connections[peer_connection.host + ":" + peer_connection.port];
+  /**
+   * @param {string}	id
+   * @param {string}	ip
+   * @param {number}	port
+   */
+  x$.add_id_mapping = function(id, ip, port){
+    var peer_connection, this$ = this;
+    if (!this.peer_connections[ip + ":" + port]) {
+      debug('bad peer specified for id mapping: %s => %o', id, {
+        ip: ip,
+        port: port
+      });
+      return;
     }
+    peer_connection = this.peer_connections[ip + ":" + port];
     this.connections_id_mapping[id] = peer_connection;
     peer_connection.id = id;
     this.emit('node_connected', id);
     peer_connection.on('close', function(){
-      delete this$.connections_id_mapping[id];
-      this$.emit('node_disconnected', id);
+      this$.del_id_mapping(id);
     });
   };
+  /**
+   * @param {string} id
+   *
+   * @return {SimplePeer}
+   */
   x$.get_id_mapping = function(id){
     return this.connections_id_mapping[id];
+  };
+  /**
+   * @param {string} id
+   */
+  x$.del_id_mapping = function(id){
+    var peer_connection;
+    if (!this.connections_id_mapping[id]) {
+      return;
+    }
+    peer_connection = this.connections_id_mapping[id];
+    delete this.connections_id_mapping[id];
+    if (!peer_connection.destroyed) {
+      peer_connection.destroy();
+    }
+    this.emit('node_disconnected', id);
   };
   x$.known_ws_servers = function(){
     var peer_connection;
@@ -292,15 +319,12 @@
       return results$;
     }.call(this)).filter(Boolean);
   };
-  x$.__register_connection = function(peer_connection, host, port){
+  /**
+   * @param {SimplePeer} peer_connection
+   */
+  x$.__register_connection = function(peer_connection){
     var this$ = this;
-    if (!host) {
-      host = peer_connection.remoteAddress;
-    }
-    if (!port) {
-      port = peer_connection.remotePort;
-    }
-    this.peer_connections[host + ":" + port] = peer_connection;
+    this.peer_connections[peer_connection.remoteAddress + ":" + peer_connection.remotePort] = peer_connection;
     peer_connection.on('close', function(){
       delete this$.peer_connections[host + ":" + port];
     });

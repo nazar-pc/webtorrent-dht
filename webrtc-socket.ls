@@ -145,11 +145,16 @@ webrtc-socket::
 									reject()
 							), @peer_connection_timeout
 			@pending_peer_connections["#address:#port"].catch(->)
+	/**
+	 * @param {boolean} initiator
+	 *
+	 * @return {SimplePeer}
+	 */
 	..prepare_connection = (initiator) ->
 		debug('prepare connection, initiator: %s', initiator)
 		# We're creating some connections upfront, while they might not be ever used, so let's drop them after timeout
 		setTimeout (!~>
-			if !peer_connection.connected
+			if !peer_connection.connected || !peer_connection.id
 				peer_connection.destroy()
 		), @peer_connection_timeout
 		peer_connection = simple-peer(Object.assign({}, @simple_peer_opts, {initiator}))
@@ -193,34 +198,51 @@ webrtc-socket::
 				@emit('error', ...&)
 			)
 			..setMaxListeners(0)
-	..add_id_mapping = (id, peer_connection) !->
-		if !(peer_connection instanceof simple-peer)
-			peer_connection = Object.assign({host: peer_connection.address}, peer_connection)
-			if !@peer_connections["#{peer_connection.host}:#{peer_connection.port}"]
-				debug('bad peer specified for id mapping: %oj', peer_connection)
-				return
-			peer_connection = @peer_connections["#{peer_connection.host}:#{peer_connection.port}"]
+	/**
+	 * @param {string}	id
+	 * @param {string}	ip
+	 * @param {number}	port
+	 */
+	..add_id_mapping = (id, ip, port) !->
+		if !@peer_connections["#ip:#port"]
+			debug('bad peer specified for id mapping: %s => %o', id, {ip, port})
+			return
+		peer_connection				= @peer_connections["#ip:#port"]
 		@connections_id_mapping[id]	= peer_connection
 		peer_connection.id			= id
 		@emit('node_connected', id)
 		peer_connection.on('close', !~>
-			delete @connections_id_mapping[id]
-			@emit('node_disconnected', id)
+			@del_id_mapping(id)
 		)
+	/**
+	 * @param {string} id
+	 *
+	 * @return {SimplePeer}
+	 */
 	..get_id_mapping = (id) ->
 		@connections_id_mapping[id]
+	/**
+	 * @param {string} id
+	 */
+	..del_id_mapping = (id) !->
+		if !@connections_id_mapping[id]
+			return
+		peer_connection	= @connections_id_mapping[id]
+		delete @connections_id_mapping[id]
+		if !peer_connection.destroyed
+			peer_connection.destroy()
+		@emit('node_disconnected', id)
 	..known_ws_servers = ->
 		(
 			for peer_connection, peer_connection of @peer_connections
 				peer_connection.ws_server
 		)
 		.filter(Boolean)
-	..__register_connection = (peer_connection, host, port) !->
-		if !host
-			host = peer_connection.remoteAddress
-		if !port
-			port = peer_connection.remotePort
-		@peer_connections["#host:#port"]	= peer_connection
+	/**
+	 * @param {SimplePeer} peer_connection
+	 */
+	..__register_connection = (peer_connection) !->
+		@peer_connections["#{peer_connection.remoteAddress}:#{peer_connection.remotePort}"]	= peer_connection
 		peer_connection.on('close', !~>
 			delete @peer_connections["#host:#port"]
 		)
