@@ -12,14 +12,14 @@ k-rpc-socket	= require('k-rpc-socket')
 webrtc-socket	= require('./webrtc-socket')
 module.exports	= k-rpc-socket-webrtc
 noop			= ->
-function parse_nodes (buffer, id_space)
+function parse_nodes (buffer, id_length)
 	nodes	=
-		for i from 0 til buffer.length by id_space + 6
-			parse_node(buffer.slice(i, i + id_space + 6), id_space)
+		for i from 0 til buffer.length by id_length + 6
+			parse_node(buffer.slice(i, i + id_length + 6), id_length)
 	nodes.filter(Boolean)
-function parse_node (buffer, id_space)
-	id				= buffer.slice(0, id_space)
-	{host, port}	= parse_info(buffer.slice(id_space, id_space + 6))
+function parse_node (buffer, id_length)
+	id				= buffer.slice(0, id_length)
+	{host, port}	= parse_info(buffer.slice(id_length, id_length + 6))
 	{id, host, port}
 function parse_info (buffer)
 	host	= buffer[0] + '.' + buffer[1] + '.' + buffer[2] + '.' + buffer[3]
@@ -56,7 +56,8 @@ function encode_info (ip, port)
 		@id	= options.id
 	else
 		@id	= Buffer.from(options.id, 'hex')
-	@_id_space		= options.id.length
+	@_id_length		= options.id.length
+	@_info_length	= @_id_length + 6
 	options			= Object.assign({}, options)
 	options.socket	= options.socket || webrtc-socket(options)
 	options.isIP	= isIP
@@ -85,9 +86,9 @@ k-rpc-socket-webrtc::
 					return
 				# We might get less signals than needed (different K, issues during WebRTC offer generation), so let's limit similarly number of nodes or values
 				if response.nodes
-					if response.nodes.length / (@_id_space + 6) > signals.length
-						response.nodes.length = signals.length * (@_id_space + 6)
-					peers = parse_nodes(response.nodes, this._id_space)
+					if response.nodes.length / @_info_length > signals.length
+						response.nodes.length = signals.length * @_info_length
+					peers = parse_nodes(response.nodes, @_id_length)
 				else if response.values
 					if response.values.length > signals.length
 						response.values.length = signals.length
@@ -179,7 +180,7 @@ k-rpc-socket-webrtc::
 														@socket.add_id_mapping(signal_id_hex, peer_connection)
 														if response.r.nodes
 															resolve(encode_node(
-																response.r.nodes.slice(i * (@_id_space + 6), i * (@_id_space + 6) + @_id_space)
+																response.r.nodes.slice(i * @_info_length, i * @_info_length + @_id_length)
 																peer_connection.remoteAddress
 																peer_connection.remotePort
 															))
@@ -198,7 +199,7 @@ k-rpc-socket-webrtc::
 						).then (peers) !~>
 							peers	= peers.filter(Boolean)
 							if response.r.nodes
-								response.r.nodes	= Buffer.concat(peers, peers.length * (@_id_space + 6))
+								response.r.nodes	= Buffer.concat(peers, peers.length * @_info_length)
 							else if response.r.values
 								response.r.values	= peers
 							callback(error, response, ...args)
