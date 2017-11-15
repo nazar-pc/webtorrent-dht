@@ -201,10 +201,11 @@ webrtc-socket::
 			)
 			..setMaxListeners(0)
 			..signal = (signal) !~>
-				extensions	= signal.extensions.map (extension) ->
-					"#extension"
-				if extensions.length
-					@emit('extensions_received', peer_connection, extensions)
+				if signal.extensions
+					extensions	= signal.extensions.map (extension) ->
+						"#extension"
+					if extensions.length
+						@emit('extensions_received', peer_connection, extensions)
 				@_simple_peer_constructor::signal.call(peer_connection, signal)
 	/**
 	 * @param {string}	id

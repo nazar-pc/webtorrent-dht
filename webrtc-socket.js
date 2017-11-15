@@ -267,11 +267,13 @@
     x$.setMaxListeners(0);
     x$.signal = function(signal){
       var extensions;
-      extensions = signal.extensions.map(function(extension){
-        return extension + "";
-      });
-      if (extensions.length) {
-        this$.emit('extensions_received', peer_connection, extensions);
+      if (signal.extensions) {
+        extensions = signal.extensions.map(function(extension){
+          return extension + "";
+        });
+        if (extensions.length) {
+          this$.emit('extensions_received', peer_connection, extensions);
+        }
       }
       this$._simple_peer_constructor.prototype.signal.call(peer_connection, signal);
     };
