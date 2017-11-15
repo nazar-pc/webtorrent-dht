@@ -25,6 +25,7 @@ SIMPLE_PEER_OPTS		= {
 	@_simple_peer_opts			= Object.assign({}, SIMPLE_PEER_OPTS, options.simple_peer_opts)
 	@_simple_peer_constructor	= options.simple_peer_constructor || simple-peer
 	@_ws_address				= options.ws_address
+	@_extensions				= options.extensions || []
 	@_listeners					= []
 	@_peer_connections			= {}
 	@_ws_connections_aliases	= {}
@@ -55,7 +56,9 @@ webrtc-socket::
 				peer_connection = @prepare_connection(true)
 					..on('signal', (signal) !~>
 						debug('got signal for WS (server): %s', signal)
-						signal = bencode.encode(signal)
+						# Append any supplied extensions
+						signal.extensions	= @_extensions
+						signal				= bencode.encode(signal)
 						ws_connection.send(signal)
 					)
 					..on('connect', !~>
@@ -114,7 +117,9 @@ webrtc-socket::
 							peer_connection = @prepare_connection(false)
 								..on('signal', (signal) !~>
 									debug('got signal for WS (client): %s', signal)
-									signal = bencode.encode(signal)
+									# Append any supplied extensions
+									signal.extensions	= @_extensions
+									signal				= bencode.encode(signal)
 									ws_connection.send(signal)
 								)
 								..on('connect', !~>
@@ -195,6 +200,12 @@ webrtc-socket::
 				@emit('error', ...&)
 			)
 			..setMaxListeners(0)
+			..signal = (signal) !~>
+				extensions	= signal.extensions.map (extension) ->
+					"#extension"
+				if extensions.length
+					@emit('extensions_received', peer_connection, extensions)
+				@_simple_peer_constructor::signal.call(peer_connection, signal)
 	/**
 	 * @param {string}	id
 	 * @param {string}	ip

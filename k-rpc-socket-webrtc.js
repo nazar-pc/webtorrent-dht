@@ -78,11 +78,12 @@
     } else {
       this.id = Buffer.from(options.id, 'hex');
     }
-    this._id_length = options.id.length;
-    this._info_length = this._id_length + 6;
     options = Object.assign({}, options);
     options.socket = options.socket || webrtcSocket(options);
     options.isIP = isIP;
+    this._id_length = options.id.length;
+    this._info_length = this._id_length + 6;
+    this._extensions = options.extensions || [];
     kRpcSocket.call(this, options);
   }
   /**
@@ -190,6 +191,7 @@
           x$ = peer_connection = this$.socket.prepare_connection(true);
           x$.on('signal', function(signal){
             signal.id = this$.id;
+            signal.extensions = this$._extensions;
             resolve({
               peer_connection: peer_connection,
               signal: signal
@@ -311,6 +313,7 @@
             x$ = peer_connection = this.socket.prepare_connection(false);
             x$.on('signal', function(signal){
               signal.id = this$.id;
+              signal.extensions = this$._extensions;
               this$.response(peer, message, {
                 id: this$.id,
                 signal: signal

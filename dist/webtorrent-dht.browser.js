@@ -80,11 +80,12 @@
     } else {
       this.id = Buffer.from(options.id, 'hex');
     }
-    this._id_length = options.id.length;
-    this._info_length = this._id_length + 6;
     options = Object.assign({}, options);
     options.socket = options.socket || webrtcSocket(options);
     options.isIP = isIP;
+    this._id_length = options.id.length;
+    this._info_length = this._id_length + 6;
+    this._extensions = options.extensions || [];
     kRpcSocket.call(this, options);
   }
   /**
@@ -192,6 +193,7 @@
           x$ = peer_connection = this$.socket.prepare_connection(true);
           x$.on('signal', function(signal){
             signal.id = this$.id;
+            signal.extensions = this$._extensions;
             resolve({
               peer_connection: peer_connection,
               signal: signal
@@ -313,6 +315,7 @@
             x$ = peer_connection = this.socket.prepare_connection(false);
             x$.on('signal', function(signal){
               signal.id = this$.id;
+              signal.extensions = this$._extensions;
               this$.response(peer, message, {
                 id: this$.id,
                 signal: signal
@@ -11153,6 +11156,7 @@ exports.RTCSessionDescription = RTCSessionDescription;
     this._simple_peer_opts = Object.assign({}, SIMPLE_PEER_OPTS, options.simple_peer_opts);
     this._simple_peer_constructor = options.simple_peer_constructor || simplePeer;
     this._ws_address = options.ws_address;
+    this._extensions = options.extensions || [];
     this._listeners = [];
     this._peer_connections = {};
     this._ws_connections_aliases = {};
@@ -11197,6 +11201,7 @@ exports.RTCSessionDescription = RTCSessionDescription;
       x$ = peer_connection = this$.prepare_connection(true);
       x$.on('signal', function(signal){
         debug('got signal for WS (server): %s', signal);
+        signal.extensions = this$._extensions;
         signal = bencode.encode(signal);
         ws_connection.send(signal);
       });
@@ -11282,6 +11287,7 @@ exports.RTCSessionDescription = RTCSessionDescription;
             x$ = peer_connection = this$.prepare_connection(false);
             x$.on('signal', function(signal){
               debug('got signal for WS (client): %s', signal);
+              signal.extensions = this$._extensions;
               signal = bencode.encode(signal);
               ws_connection.send(signal);
             });
@@ -11385,6 +11391,16 @@ exports.RTCSessionDescription = RTCSessionDescription;
       this$.emit.apply(this$, ['error'].concat(slice$.call(arguments)));
     });
     x$.setMaxListeners(0);
+    x$.signal = function(signal){
+      var extensions;
+      extensions = signal.extensions.map(function(extension){
+        return extension + "";
+      });
+      if (extensions.length) {
+        this$.emit('extensions_received', peer_connection, extensions);
+      }
+      this$._simple_peer_constructor.prototype.signal.call(peer_connection, signal);
+    };
     return x$;
   };
   /**

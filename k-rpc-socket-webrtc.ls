@@ -56,11 +56,12 @@ function encode_info (ip, port)
 		@id	= options.id
 	else
 		@id	= Buffer.from(options.id, 'hex')
-	@_id_length		= options.id.length
-	@_info_length	= @_id_length + 6
 	options			= Object.assign({}, options)
 	options.socket	= options.socket || webrtc-socket(options)
 	options.isIP	= isIP
+	@_id_length		= options.id.length
+	@_info_length	= @_id_length + 6
+	@_extensions	= options.extensions || []
 	k-rpc-socket.call(@, options)
 /**
  * Multi-level inheritance: k-rpc-socket-webrtc inherits from noop (which will contain additional methods) and noop inherits from k-rpc-socket
@@ -128,7 +129,9 @@ k-rpc-socket-webrtc::
 							peer_connection = @socket.prepare_connection(true)
 								..on('signal', (signal) !~>
 									# Append node id, it is used to avoid creating unnecessary connections
-									signal.id	= @id
+									signal.id			= @id
+									# Append any supplied extensions
+									signal.extensions	= @_extensions
 									resolve({peer_connection, signal})
 								)
 								..on('error', (error) !~>
@@ -226,7 +229,9 @@ k-rpc-socket-webrtc::
 								peer_connection = @socket.prepare_connection(false)
 									..on('signal', (signal) !~>
 										# Append node id, it is used to avoid creating unnecessary connections
-										signal.id	= @id
+										signal.id			= @id
+										# Append any supplied extensions
+										signal.extensions	= @_extensions
 										@response(peer, message, {@id, signal})
 									)
 									..on('error', (error) !~>
