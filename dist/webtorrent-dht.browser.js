@@ -17,20 +17,20 @@
   webrtcSocket = require('./webrtc-socket');
   module.exports = kRpcSocketWebrtc;
   noop = function(){};
-  function parse_nodes(buffer, id_space){
+  function parse_nodes(buffer, id_length){
     var nodes, res$, i$, step$, to$, i;
     res$ = [];
-    for (i$ = 0, to$ = buffer.length, step$ = id_space + 6; step$ < 0 ? i$ > to$ : i$ < to$; i$ += step$) {
+    for (i$ = 0, to$ = buffer.length, step$ = id_length + 6; step$ < 0 ? i$ > to$ : i$ < to$; i$ += step$) {
       i = i$;
-      res$.push(parse_node(buffer.slice(i, i + id_space + 6), id_space));
+      res$.push(parse_node(buffer.slice(i, i + id_length + 6), id_length));
     }
     nodes = res$;
     return nodes.filter(Boolean);
   }
-  function parse_node(buffer, id_space){
+  function parse_node(buffer, id_length){
     var id, ref$, host, port;
-    id = buffer.slice(0, id_space);
-    ref$ = parse_info(buffer.slice(id_space, id_space + 6)), host = ref$.host, port = ref$.port;
+    id = buffer.slice(0, id_length);
+    ref$ = parse_info(buffer.slice(id_length, id_length + 6)), host = ref$.host, port = ref$.port;
     return {
       id: id,
       host: host,
@@ -80,7 +80,8 @@
     } else {
       this.id = Buffer.from(options.id, 'hex');
     }
-    this._id_space = options.id.length;
+    this._id_length = options.id.length;
+    this._info_length = this._id_length + 6;
     options = Object.assign({}, options);
     options.socket = options.socket || webrtcSocket(options);
     options.isIP = isIP;
@@ -113,10 +114,10 @@
         return;
       }
       if (response.nodes) {
-        if (response.nodes.length / (this._id_space + 6) > signals.length) {
-          response.nodes.length = signals.length * (this._id_space + 6);
+        if (response.nodes.length / this._info_length > signals.length) {
+          response.nodes.length = signals.length * this._info_length;
         }
-        peers = parse_nodes(response.nodes, this._id_space);
+        peers = parse_nodes(response.nodes, this._id_length);
       } else if (response.values) {
         if (response.values.length > signals.length) {
           response.values.length = signals.length;
@@ -253,9 +254,8 @@
                       var x$, peer_connection;
                       x$ = peer_connection = peer_connections[i];
                       x$.on('connect', function(){
-                        this$.socket.add_id_mapping(signal_id_hex, peer_connection);
                         if (response.r.nodes) {
-                          resolve(encode_node(response.r.nodes.slice(i * this$._id_space + 6, i * (this$._id_space + 6) + this$._id_space), peer_connection.remoteAddress, peer_connection.remotePort));
+                          resolve(encode_node(response.r.nodes.slice(i * this$._info_length, i * this$._info_length + this$._id_length), peer_connection.remoteAddress, peer_connection.remotePort));
                         } else if (response.r.values) {
                           resolve(encode_info(peer_connection.remoteAddress, peer_connection.remotePort));
                         }
@@ -274,7 +274,7 @@
           }.call(this$))).then(function(peers){
             peers = peers.filter(Boolean);
             if (response.r.nodes) {
-              response.r.nodes = Buffer.concat(peers, peers.length * (this$._id_space + 6));
+              response.r.nodes = Buffer.concat(peers, peers.length * this$._info_length);
             } else if (response.r.values) {
               response.r.values = peers;
             }
@@ -288,7 +288,7 @@
     }
   };
   x$.emit = function(event){
-    var args, res$, i$, to$, message, peer, ref$, ref1$, ref2$, signal, signal_id_hex, x$, peer_connection, ref3$, this$ = this;
+    var args, res$, i$, to$, message, peer, ref$, ref1$, signal, signal_id_hex, x$, peer_connection, this$ = this;
     res$ = [];
     for (i$ = 1, to$ = arguments.length; i$ < to$; ++i$) {
       res$.push(arguments[i$]);
@@ -297,12 +297,9 @@
     switch (event) {
     case 'query':
       message = args[0], peer = args[1];
-      if ((ref$ = message.a) != null && ref$.id) {
-        this.socket.add_id_mapping(message.a.id.toString('hex'), peer);
-      }
-      switch ((ref1$ = message.q) != null && (typeof ref1$.toString == 'function' && ref1$.toString())) {
+      switch ((ref$ = message.q) != null && (typeof ref$.toString == 'function' && ref$.toString())) {
       case 'peer_connection':
-        if (((ref2$ = message.a) != null ? ref2$.signal : void 8) != null) {
+        if ((ref1$ = message.a) != null && ref1$.signal) {
           signal = message.a.signal;
           signal_id_hex = signal.id.toString('hex');
           if (signal_id_hex === this.id.toString('hex') || this.socket.get_id_mapping(signal_id_hex)) {
@@ -314,9 +311,6 @@
             });
           } else {
             x$ = peer_connection = this.socket.prepare_connection(false);
-            x$.on('connect', function(){
-              this$.socket.add_id_mapping(signal_id_hex, peer_connection);
-            });
             x$.on('signal', function(signal){
               signal.id = this$.id;
               this$.response(peer, message, {
@@ -333,19 +327,13 @@
         break;
       }
       break;
-    case 'response':
-      message = args[0], peer = args[1];
-      if ((ref3$ = message.r) != null && ref3$.id) {
-        this.socket.add_id_mapping(message.r.id.toString('hex'), peer);
-      }
-      break;
     }
     return kRpcSocket.prototype.emit.apply(this, arguments);
   };
 }).call(this);
 
 }).call(this,require("buffer").Buffer)
-},{"./webrtc-socket":60,"bencode":5,"buffer":15,"debug":18,"inherits":23,"isipaddress":26,"k-rpc-socket":28}],2:[function(require,module,exports){
+},{"./webrtc-socket":57,"bencode":5,"buffer":15,"debug":18,"inherits":23,"isipaddress":26,"k-rpc-socket":28}],2:[function(require,module,exports){
 (function (Buffer){
 // Generated by LiveScript 1.5.0
 /**
@@ -385,13 +373,19 @@
     this.socket.socket.on('node_disconnected', function(id){
       this$.nodes.remove(Buffer.from(id, 'hex'));
     });
+    this.nodes.on('added', function(peer){
+      this$.socket.socket.add_id_mapping(peer.id.toString('hex'), peer.host || peer.address, peer.port);
+    });
+    this.nodes.on('removed', function(peer){
+      this$.socket.socket.del_id_mapping(peer.id.toString('hex'));
+    });
   }
   inherits(noop, kRpc);
   inherits(kRpcWebrtc, noop);
 }).call(this);
 
 }).call(this,require("buffer").Buffer)
-},{"./k-rpc-socket-webrtc":1,"buffer":15,"inherits":23,"k-rpc":33,"randombytes":39}],3:[function(require,module,exports){
+},{"./k-rpc-socket-webrtc":1,"buffer":15,"inherits":23,"k-rpc":30,"randombytes":36}],3:[function(require,module,exports){
 (function (Buffer){
 const INTEGER_START = 0x69 // 'i'
 const STRING_DELIM = 0x3A // ':'
@@ -1496,7 +1490,7 @@ function toBuffer (str) {
 }
 
 }).call(this,require('_process'))
-},{"_process":38,"bencode":5,"buffer-equals":16,"debug":9,"events":20,"inherits":23,"k-bucket":27,"k-rpc":33,"lru":35,"randombytes":39,"safe-buffer":50,"simple-sha1":52}],8:[function(require,module,exports){
+},{"_process":35,"bencode":5,"buffer-equals":16,"debug":9,"events":20,"inherits":23,"k-bucket":27,"k-rpc":30,"lru":32,"randombytes":36,"safe-buffer":47,"simple-sha1":49}],8:[function(require,module,exports){
 var Client = require('./client')
 var Server = require('./server')
 
@@ -1703,7 +1697,7 @@ function localstorage() {
 }
 
 }).call(this,require('_process'))
-},{"./debug":10,"_process":38}],10:[function(require,module,exports){
+},{"./debug":10,"_process":35}],10:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -1930,7 +1924,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":36}],11:[function(require,module,exports){
+},{"ms":33}],11:[function(require,module,exports){
 /**
  * TODO: DHT Bootstrap Server
  *
@@ -2063,7 +2057,7 @@ function fromByteArray (uint8) {
 /*!
  * The buffer module from node.js, for the browser.
  *
- * @author   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
+ * @author   Feross Aboukhadijeh <https://feross.org>
  * @license  MIT
  */
 /* eslint-disable no-proto */
@@ -2166,7 +2160,7 @@ function from (value, encodingOrOffset, length) {
     throw new TypeError('"value" argument must not be a number')
   }
 
-  if (value instanceof ArrayBuffer) {
+  if (isArrayBuffer(value)) {
     return fromArrayBuffer(value, encodingOrOffset, length)
   }
 
@@ -2426,7 +2420,7 @@ function byteLength (string, encoding) {
   if (Buffer.isBuffer(string)) {
     return string.length
   }
-  if (isArrayBufferView(string) || string instanceof ArrayBuffer) {
+  if (isArrayBufferView(string) || isArrayBuffer(string)) {
     return string.byteLength
   }
   if (typeof string !== 'string') {
@@ -3758,6 +3752,14 @@ function blitBuffer (src, dst, offset, length) {
   return i
 }
 
+// ArrayBuffers from another context (i.e. an iframe) do not pass the `instanceof` check
+// but they should be treated as valid. See: https://github.com/feross/buffer/issues/166
+function isArrayBuffer (obj) {
+  return obj instanceof ArrayBuffer ||
+    (obj != null && obj.constructor != null && obj.constructor.name === 'ArrayBuffer' &&
+      typeof obj.byteLength === 'number')
+}
+
 // Node 0.10 supports `ArrayBuffer` but lacks `ArrayBuffer.isView`
 function isArrayBufferView (obj) {
   return (typeof ArrayBuffer.isView === 'function') && ArrayBuffer.isView(obj)
@@ -4097,7 +4099,7 @@ function localstorage() {
 }
 
 }).call(this,require('_process'))
-},{"./debug":19,"_process":38}],19:[function(require,module,exports){
+},{"./debug":19,"_process":35}],19:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -4301,7 +4303,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":36}],20:[function(require,module,exports){
+},{"ms":33}],20:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -5331,7 +5333,7 @@ KBucket.prototype._update = function (node, index, contact) {
 }
 
 }).call(this,{"isBuffer":require("../is-buffer/index.js")})
-},{"../is-buffer/index.js":24,"buffer-equals":16,"events":20,"inherits":23,"randombytes":39}],28:[function(require,module,exports){
+},{"../is-buffer/index.js":24,"buffer-equals":16,"events":20,"inherits":23,"randombytes":36}],28:[function(require,module,exports){
 var dgram = require('dgram')
 var bencode = require('bencode')
 var isIP = require('net').isIP
@@ -5543,292 +5545,9 @@ RPC.prototype._resolveAndQuery = function (peer, query, cb) {
 
 function noop () {}
 
-},{"bencode":31,"dgram":13,"dns":13,"events":20,"net":13,"safe-buffer":32,"util":58}],29:[function(require,module,exports){
-(function (Buffer){
-/**
- * replaces parseInt(buffer.toString('ascii', start, end)).
- * For strings with less then ~30 charachters, this is actually a lot faster.
- *
- * @param {Buffer} data
- * @param {Number} start
- * @param {Number} end
- * @return {Number} calculated number
- */
-function getIntFromBuffer (buffer, start, end) {
-  var sum = 0
-  var sign = 1
-
-  for (var i = start; i < end; i++) {
-    var num = buffer[i]
-
-    if (num < 58 && num >= 48) {
-      sum = sum * 10 + (num - 48)
-      continue
-    }
-
-    if (i === start && num === 43) { // +
-      continue
-    }
-
-    if (i === start && num === 45) { // -
-      sign = -1
-      continue
-    }
-
-    if (num === 46) { // .
-      // its a float. break here.
-      break
-    }
-
-    throw new Error('not a number: buffer[' + i + '] = ' + num)
-  }
-
-  return sum * sign
-}
-
-/**
- * Decodes bencoded data.
- *
- * @param  {Buffer} data
- * @param  {Number} start (optional)
- * @param  {Number} end (optional)
- * @param  {String} encoding (optional)
- * @return {Object|Array|Buffer|String|Number}
- */
-function decode (data, start, end, encoding) {
-  if (data == null || data.length === 0) {
-    return null
-  }
-
-  if (typeof start !== 'number' && encoding == null) {
-    encoding = start
-    start = undefined
-  }
-
-  if (typeof end !== 'number' && encoding == null) {
-    encoding = end
-    end = undefined
-  }
-
-  decode.position = 0
-  decode.encoding = encoding || null
-
-  decode.data = !(Buffer.isBuffer(data))
-    ? new Buffer(data)
-    : data.slice(start, end)
-
-  decode.bytes = decode.data.length
-
-  return decode.next()
-}
-
-decode.bytes = 0
-decode.position = 0
-decode.data = null
-decode.encoding = null
-
-decode.next = function () {
-  switch (decode.data[decode.position]) {
-    case 0x64:
-      return decode.dictionary()
-    case 0x6C:
-      return decode.list()
-    case 0x69:
-      return decode.integer()
-    default:
-      return decode.buffer()
-  }
-}
-
-decode.find = function (chr) {
-  var i = decode.position
-  var c = decode.data.length
-  var d = decode.data
-
-  while (i < c) {
-    if (d[i] === chr) return i
-    i++
-  }
-
-  throw new Error(
-    'Invalid data: Missing delimiter "' +
-    String.fromCharCode(chr) + '" [0x' +
-    chr.toString(16) + ']'
-  )
-}
-
-decode.dictionary = function () {
-  decode.position++
-
-  var dict = {}
-
-  while (decode.data[decode.position] !== 0x65) {
-    dict[decode.buffer()] = decode.next()
-  }
-
-  decode.position++
-
-  return dict
-}
-
-decode.list = function () {
-  decode.position++
-
-  var lst = []
-
-  while (decode.data[decode.position] !== 0x65) {
-    lst.push(decode.next())
-  }
-
-  decode.position++
-
-  return lst
-}
-
-decode.integer = function () {
-  var end = decode.find(0x65)
-  var number = getIntFromBuffer(decode.data, decode.position + 1, end)
-
-  decode.position += end + 1 - decode.position
-
-  return number
-}
-
-decode.buffer = function () {
-  var sep = decode.find(0x3A)
-  var length = getIntFromBuffer(decode.data, decode.position, sep)
-  var end = ++sep + length
-
-  decode.position = end
-
-  return decode.encoding
-    ? decode.data.toString(decode.encoding, sep, end)
-    : decode.data.slice(sep, end)
-}
-
-module.exports = decode
-
-}).call(this,require("buffer").Buffer)
-},{"buffer":15}],30:[function(require,module,exports){
-(function (Buffer){
-/**
- * Encodes data in bencode.
- *
- * @param  {Buffer|Array|String|Object|Number|Boolean} data
- * @return {Buffer}
- */
-function encode (data, buffer, offset) {
-  var buffers = []
-  var result = null
-
-  encode._encode(buffers, data)
-  result = Buffer.concat(buffers)
-  encode.bytes = result.length
-
-  if (Buffer.isBuffer(buffer)) {
-    result.copy(buffer, offset)
-    return buffer
-  }
-
-  return result
-}
-
-encode.bytes = -1
-encode._floatConversionDetected = false
-
-encode._encode = function (buffers, data) {
-  if (Buffer.isBuffer(data)) {
-    buffers.push(new Buffer(data.length + ':'))
-    buffers.push(data)
-    return
-  }
-
-  if (data == null) { return }
-
-  switch (typeof data) {
-    case 'string':
-      encode.buffer(buffers, data)
-      break
-    case 'number':
-      encode.number(buffers, data)
-      break
-    case 'object':
-      data.constructor === Array
-        ? encode.list(buffers, data)
-        : encode.dict(buffers, data)
-      break
-    case 'boolean':
-      encode.number(buffers, data ? 1 : 0)
-      break
-  }
-}
-
-var buffE = new Buffer('e')
-var buffD = new Buffer('d')
-var buffL = new Buffer('l')
-
-encode.buffer = function (buffers, data) {
-  buffers.push(new Buffer(Buffer.byteLength(data) + ':' + data))
-}
-
-encode.number = function (buffers, data) {
-  var maxLo = 0x80000000
-  var hi = (data / maxLo) << 0
-  var lo = (data % maxLo) << 0
-  var val = hi * maxLo + lo
-
-  buffers.push(new Buffer('i' + val + 'e'))
-
-  if (val !== data && !encode._floatConversionDetected) {
-    encode._floatConversionDetected = true
-    console.warn(
-      'WARNING: Possible data corruption detected with value "' + data + '":',
-      'Bencoding only defines support for integers, value was converted to "' + val + '"'
-    )
-    console.trace()
-  }
-}
-
-encode.dict = function (buffers, data) {
-  buffers.push(buffD)
-
-  var j = 0
-  var k
-  // fix for issue #13 - sorted dicts
-  var keys = Object.keys(data).sort()
-  var kl = keys.length
-
-  for (; j < kl; j++) {
-    k = keys[j]
-    if (data[k] == null) continue
-    encode.buffer(buffers, k)
-    encode._encode(buffers, data[k])
-  }
-
-  buffers.push(buffE)
-}
-
-encode.list = function (buffers, data) {
-  var i = 0
-  var c = data.length
-  buffers.push(buffL)
-
-  for (; i < c; i++) {
-    if (data[i] == null) continue
-    encode._encode(buffers, data[i])
-  }
-
-  buffers.push(buffE)
-}
-
-module.exports = encode
-
-}).call(this,require("buffer").Buffer)
-},{"buffer":15}],31:[function(require,module,exports){
-arguments[4][5][0].apply(exports,arguments)
-},{"./decode":29,"./encode":30,"dup":5}],32:[function(require,module,exports){
+},{"bencode":5,"dgram":13,"dns":13,"events":20,"net":13,"safe-buffer":29,"util":55}],29:[function(require,module,exports){
 arguments[4][6][0].apply(exports,arguments)
-},{"buffer":15,"dup":6}],33:[function(require,module,exports){
+},{"buffer":15,"dup":6}],30:[function(require,module,exports){
 (function (process){
 var socket = require('k-rpc-socket')
 var KBucket = require('k-bucket')
@@ -6185,9 +5904,9 @@ function toBuffer (str) {
 }
 
 }).call(this,require('_process'))
-},{"_process":38,"buffer-equals":16,"events":20,"k-bucket":27,"k-rpc-socket":28,"randombytes":39,"safe-buffer":34,"util":58}],34:[function(require,module,exports){
+},{"_process":35,"buffer-equals":16,"events":20,"k-bucket":27,"k-rpc-socket":28,"randombytes":36,"safe-buffer":31,"util":55}],31:[function(require,module,exports){
 arguments[4][6][0].apply(exports,arguments)
-},{"buffer":15,"dup":6}],35:[function(require,module,exports){
+},{"buffer":15,"dup":6}],32:[function(require,module,exports){
 var events = require('events')
 var inherits = require('inherits')
 
@@ -6334,7 +6053,7 @@ LRU.prototype.evict = function () {
   this.emit('evict', {key: key, value: value})
 }
 
-},{"events":20,"inherits":23}],36:[function(require,module,exports){
+},{"events":20,"inherits":23}],33:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -6488,7 +6207,7 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],37:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -6535,7 +6254,7 @@ function nextTick(fn, arg1, arg2, arg3) {
 }
 
 }).call(this,require('_process'))
-},{"_process":38}],38:[function(require,module,exports){
+},{"_process":35}],35:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -6721,7 +6440,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],39:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 (function (process,global){
 'use strict'
 
@@ -6763,7 +6482,7 @@ function randomBytes (size, cb) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"_process":38,"safe-buffer":50}],40:[function(require,module,exports){
+},{"_process":35,"safe-buffer":47}],37:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -6888,7 +6607,7 @@ function forEach(xs, f) {
     f(xs[i], i);
   }
 }
-},{"./_stream_readable":42,"./_stream_writable":44,"core-util-is":17,"inherits":23,"process-nextick-args":37}],41:[function(require,module,exports){
+},{"./_stream_readable":39,"./_stream_writable":41,"core-util-is":17,"inherits":23,"process-nextick-args":34}],38:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -6936,7 +6655,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":43,"core-util-is":17,"inherits":23}],42:[function(require,module,exports){
+},{"./_stream_transform":40,"core-util-is":17,"inherits":23}],39:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -7943,7 +7662,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'))
-},{"./_stream_duplex":40,"./internal/streams/BufferList":45,"./internal/streams/destroy":46,"./internal/streams/stream":47,"_process":38,"core-util-is":17,"events":20,"inherits":23,"isarray":25,"process-nextick-args":37,"safe-buffer":50,"string_decoder/":53,"util":12}],43:[function(require,module,exports){
+},{"./_stream_duplex":37,"./internal/streams/BufferList":42,"./internal/streams/destroy":43,"./internal/streams/stream":44,"_process":35,"core-util-is":17,"events":20,"inherits":23,"isarray":25,"process-nextick-args":34,"safe-buffer":47,"string_decoder/":50,"util":12}],40:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -8158,7 +7877,7 @@ function done(stream, er, data) {
 
   return stream.push(null);
 }
-},{"./_stream_duplex":40,"core-util-is":17,"inherits":23}],44:[function(require,module,exports){
+},{"./_stream_duplex":37,"core-util-is":17,"inherits":23}],41:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -8809,7 +8528,7 @@ Writable.prototype._destroy = function (err, cb) {
   cb(err);
 };
 }).call(this,require('_process'))
-},{"./_stream_duplex":40,"./internal/streams/destroy":46,"./internal/streams/stream":47,"_process":38,"core-util-is":17,"inherits":23,"process-nextick-args":37,"safe-buffer":50,"util-deprecate":55}],45:[function(require,module,exports){
+},{"./_stream_duplex":37,"./internal/streams/destroy":43,"./internal/streams/stream":44,"_process":35,"core-util-is":17,"inherits":23,"process-nextick-args":34,"safe-buffer":47,"util-deprecate":52}],42:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -8894,7 +8613,7 @@ module.exports = function () {
 
   return BufferList;
 }();
-},{"safe-buffer":50}],46:[function(require,module,exports){
+},{"safe-buffer":47}],43:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -8967,10 +8686,10 @@ module.exports = {
   destroy: destroy,
   undestroy: undestroy
 };
-},{"process-nextick-args":37}],47:[function(require,module,exports){
+},{"process-nextick-args":34}],44:[function(require,module,exports){
 module.exports = require('events').EventEmitter;
 
-},{"events":20}],48:[function(require,module,exports){
+},{"events":20}],45:[function(require,module,exports){
 exports = module.exports = require('./lib/_stream_readable.js');
 exports.Stream = exports;
 exports.Readable = exports;
@@ -8979,7 +8698,7 @@ exports.Duplex = require('./lib/_stream_duplex.js');
 exports.Transform = require('./lib/_stream_transform.js');
 exports.PassThrough = require('./lib/_stream_passthrough.js');
 
-},{"./lib/_stream_duplex.js":40,"./lib/_stream_passthrough.js":41,"./lib/_stream_readable.js":42,"./lib/_stream_transform.js":43,"./lib/_stream_writable.js":44}],49:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":37,"./lib/_stream_passthrough.js":38,"./lib/_stream_readable.js":39,"./lib/_stream_transform.js":40,"./lib/_stream_writable.js":41}],46:[function(require,module,exports){
 (function (global){
 (function () {
     var /*
@@ -9514,7 +9233,7 @@ exports.PassThrough = require('./lib/_stream_passthrough.js');
     }
 }());
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],50:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 /* eslint-disable node/no-deprecated-api */
 var buffer = require('buffer')
 var Buffer = buffer.Buffer
@@ -9576,7 +9295,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   return buffer.SlowBuffer(size)
 }
 
-},{"buffer":15}],51:[function(require,module,exports){
+},{"buffer":15}],48:[function(require,module,exports){
 (function (Buffer){
 module.exports = Peer
 
@@ -10382,7 +10101,7 @@ Peer.prototype._transformConstraints = function (constraints) {
 function noop () {}
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":15,"debug":18,"get-browser-rtc":21,"inherits":23,"randombytes":39,"readable-stream":48}],52:[function(require,module,exports){
+},{"buffer":15,"debug":18,"get-browser-rtc":21,"inherits":23,"randombytes":36,"readable-stream":45}],49:[function(require,module,exports){
 var Rusha = require('rusha')
 
 var rusha = new Rusha
@@ -10445,7 +10164,7 @@ function hex (buf) {
 module.exports = sha1
 module.exports.sync = sha1sync
 
-},{"rusha":49}],53:[function(require,module,exports){
+},{"rusha":46}],50:[function(require,module,exports){
 'use strict';
 
 var Buffer = require('safe-buffer').Buffer;
@@ -10718,10 +10437,10 @@ function simpleWrite(buf) {
 function simpleEnd(buf) {
   return buf && buf.length ? this.write(buf) : '';
 }
-},{"safe-buffer":54}],54:[function(require,module,exports){
+},{"safe-buffer":51}],51:[function(require,module,exports){
 module.exports = require('buffer')
 
-},{"buffer":15}],55:[function(require,module,exports){
+},{"buffer":15}],52:[function(require,module,exports){
 (function (global){
 
 /**
@@ -10792,16 +10511,16 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],56:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 arguments[4][23][0].apply(exports,arguments)
-},{"dup":23}],57:[function(require,module,exports){
+},{"dup":23}],54:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],58:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -11391,7 +11110,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":57,"_process":38,"inherits":56}],59:[function(require,module,exports){
+},{"./support/isBuffer":54,"_process":35,"inherits":53}],56:[function(require,module,exports){
 var RTCIceCandidate       = window.mozRTCIceCandidate       || window.webkitRTCIceCandidate       || window.RTCIceCandidate;
 var RTCPeerConnection     = window.mozRTCPeerConnection     || window.webkitRTCPeerConnection     || window.RTCPeerConnection;
 var RTCSessionDescription = window.mozRTCSessionDescription || window.webkitRTCSessionDescription || window.RTCSessionDescription;
@@ -11400,7 +11119,7 @@ exports.RTCIceCandidate       = RTCIceCandidate;
 exports.RTCPeerConnection     = RTCPeerConnection;
 exports.RTCSessionDescription = RTCSessionDescription;
 
-},{}],60:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 (function (Buffer){
 // Generated by LiveScript 1.5.0
 /**
@@ -11430,19 +11149,20 @@ exports.RTCSessionDescription = RTCSessionDescription;
     if (!(this instanceof webrtcSocket)) {
       return new webrtcSocket(options);
     }
-    this.peer_connection_timeout = (options.peer_connection_timeout || PEER_CONNECTION_TIMEOUT) * 1000;
-    this.simple_peer_opts = Object.assign({}, SIMPLE_PEER_OPTS, options.simple_peer_opts);
-    this.ws_address = options.ws_address;
-    this.listeners = [];
-    this.peer_connections = {};
-    this.ws_connections_aliases = {};
-    this.pending_peer_connections = {};
-    this.connections_id_mapping = {};
+    this._peer_connection_timeout = (options.peer_connection_timeout || PEER_CONNECTION_TIMEOUT) * 1000;
+    this._simple_peer_opts = Object.assign({}, SIMPLE_PEER_OPTS, options.simple_peer_opts);
+    this._simple_peer_constructor = options.simple_peer_constructor || simplePeer;
+    this._ws_address = options.ws_address;
+    this._listeners = [];
+    this._peer_connections = {};
+    this._ws_connections_aliases = {};
+    this._pending_peer_connections = {};
+    this._connections_id_mapping = {};
   }
   x$ = webrtcSocket.prototype;
   x$.address = function(){
     if (this.ws_server) {
-      return this.ws_address;
+      return this._ws_address;
     } else {
       throw new Error('WebSocket connection is not established yet');
     }
@@ -11457,8 +11177,8 @@ exports.RTCSessionDescription = RTCSessionDescription;
     });
     x$.on('listening', function(){
       debug('listening for WebSocket connections on %s:%d', address, port);
-      if (!this$.ws_address) {
-        this$.ws_address = {
+      if (!this$._ws_address) {
+        this$._ws_address = {
           address: address,
           port: port
         };
@@ -11499,12 +11219,12 @@ exports.RTCSessionDescription = RTCSessionDescription;
       });
       setTimeout(function(){
         ws_connection.close();
-      }, this$.peer_connection_timeout);
+      }, this$._peer_connection_timeout);
     });
   };
   x$.close = function(){
     var peer, ref$;
-    for (peer in ref$ = this.peer_connections) {
+    for (peer in ref$ = this._peer_connections) {
       peer = ref$[peer];
       peer.destroy();
     }
@@ -11519,8 +11239,8 @@ exports.RTCSessionDescription = RTCSessionDescription;
       res$.push(arguments[i$]);
     }
     args = res$;
-    if (this.listeners[eventName]) {
-      for (i$ = 0, len$ = (ref$ = this.listeners[eventName]).length; i$ < len$; ++i$) {
+    if (this._listeners[eventName]) {
+      for (i$ = 0, len$ = (ref$ = this._listeners[eventName]).length; i$ < len$; ++i$) {
         listener = ref$[i$];
         results$.push(listener.apply(null, args));
       }
@@ -11529,22 +11249,22 @@ exports.RTCSessionDescription = RTCSessionDescription;
   };
   x$.on = function(eventName, listener){
     var ref$;
-    ((ref$ = this.listeners)[eventName] || (ref$[eventName] = [])).push(listener);
+    ((ref$ = this._listeners)[eventName] || (ref$[eventName] = [])).push(listener);
   };
   x$.send = function(buffer, offset, length, port, address, callback){
     var this$ = this;
-    if (this.peer_connections[address + ":" + port]) {
-      this.peer_connections[address + ":" + port].send(buffer);
+    if (this._peer_connections[address + ":" + port]) {
+      this._peer_connections[address + ":" + port].send(buffer);
       callback();
-    } else if (this.ws_connections_aliases[address + ":" + port]) {
-      this.ws_connections_aliases[address + ":" + port].send(buffer);
+    } else if (this._ws_connections_aliases[address + ":" + port]) {
+      this._ws_connections_aliases[address + ":" + port].send(buffer);
       callback();
-    } else if (this.pending_peer_connections[address + ":" + port]) {
-      this.pending_peer_connections[address + ":" + port].then(function(peer){
+    } else if (this._pending_peer_connections[address + ":" + port]) {
+      this._pending_peer_connections[address + ":" + port].then(function(peer){
         this$.send(buffer, offset, length, port, address, callback);
       })['catch'](function(){});
     } else {
-      this.pending_peer_connections[address + ":" + port] = new Promise(function(resolve, reject){
+      this._pending_peer_connections[address + ":" + port] = new Promise(function(resolve, reject){
         (function(WebSocket){
           var x$, ws_connection, this$ = this;
           x$ = ws_connection = new WebSocket("ws://" + address + ":" + port);
@@ -11574,7 +11294,7 @@ exports.RTCSessionDescription = RTCSessionDescription;
                 address: peer_connection.remoteAddress,
                 port: peer_connection.remotePort
               };
-              this$.__register_ws_connection_alias(remote_peer_info.address, remote_peer_info.port, address, port);
+              this$._register_ws_connection_alias(remote_peer_info.address, remote_peer_info.port, address, port);
               this$.send(buffer, offset, length, remote_peer_info.port, remote_peer_info.address, callback);
               resolve(remote_peer_info);
             });
@@ -11593,32 +11313,37 @@ exports.RTCSessionDescription = RTCSessionDescription;
             };
             setTimeout(function(){
               ws_connection.close();
-              delete this$.pending_peer_connections[address + ":" + port];
+              delete this$._pending_peer_connections[address + ":" + port];
               if (!peer_connection.connected) {
                 reject();
               }
-            }, this$.peer_connection_timeout);
+            }, this$._peer_connection_timeout);
           };
         }.call(this$, typeof WebSocket !== 'undefined' ? WebSocket : ws));
       });
-      this.pending_peer_connections[address + ":" + port]['catch'](function(){});
+      this._pending_peer_connections[address + ":" + port]['catch'](function(){});
     }
   };
+  /**
+   * @param {boolean} initiator
+   *
+   * @return {SimplePeer}
+   */
   x$.prepare_connection = function(initiator){
     var x$, peer_connection, this$ = this;
     debug('prepare connection, initiator: %s', initiator);
     setTimeout(function(){
-      if (!peer_connection.connected) {
+      if (!peer_connection.connected || !peer_connection.id) {
         peer_connection.destroy();
       }
-    }, this.peer_connection_timeout);
-    x$ = peer_connection = simplePeer(Object.assign({}, this.simple_peer_opts, {
+    }, this._peer_connection_timeout);
+    x$ = peer_connection = this._simple_peer_constructor(Object.assign({}, this._simple_peer_opts, {
       initiator: initiator
     }));
     x$.on('connect', function(){
       var address, data;
       debug('peer connected: %s:%d', peer_connection.remoteAddress, peer_connection.remotePort);
-      this$.__register_connection(peer_connection);
+      this$._register_connection(peer_connection);
       if (this$.ws_server) {
         address = this$.address();
         data = bencode.encode({
@@ -11662,65 +11387,86 @@ exports.RTCSessionDescription = RTCSessionDescription;
     x$.setMaxListeners(0);
     return x$;
   };
-  x$.add_id_mapping = function(id, peer_connection){
-    var this$ = this;
-    if (!(peer_connection instanceof simplePeer)) {
-      peer_connection = Object.assign({
-        host: peer_connection.address
-      }, peer_connection);
-      if (!this.peer_connections[peer_connection.host + ":" + peer_connection.port]) {
-        debug('bad peer specified for id mapping: %oj', peer_connection);
-        return;
-      }
-      peer_connection = this.peer_connections[peer_connection.host + ":" + peer_connection.port];
+  /**
+   * @param {string}	id
+   * @param {string}	ip
+   * @param {number}	port
+   */
+  x$.add_id_mapping = function(id, ip, port){
+    var peer_connection, this$ = this;
+    if (!this._peer_connections[ip + ":" + port]) {
+      debug('bad peer specified for id mapping: %s => %o', id, {
+        ip: ip,
+        port: port
+      });
+      return;
     }
-    this.connections_id_mapping[id] = peer_connection;
+    peer_connection = this._peer_connections[ip + ":" + port];
+    this._connections_id_mapping[id] = peer_connection;
     peer_connection.id = id;
     this.emit('node_connected', id);
     peer_connection.on('close', function(){
-      delete this$.connections_id_mapping[id];
-      this$.emit('node_disconnected', id);
+      this$.del_id_mapping(id);
     });
   };
+  /**
+   * @param {string} id
+   *
+   * @return {SimplePeer}
+   */
   x$.get_id_mapping = function(id){
-    return this.connections_id_mapping[id];
+    return this._connections_id_mapping[id];
+  };
+  /**
+   * @param {string} id
+   */
+  x$.del_id_mapping = function(id){
+    var peer_connection;
+    if (!this._connections_id_mapping[id]) {
+      return;
+    }
+    peer_connection = this._connections_id_mapping[id];
+    delete this._connections_id_mapping[id];
+    if (!peer_connection.destroyed) {
+      peer_connection.destroy();
+    }
+    this.emit('node_disconnected', id);
   };
   x$.known_ws_servers = function(){
     var peer_connection;
     return (function(){
       var ref$, results$ = [];
-      for (peer_connection in ref$ = this.peer_connections) {
+      for (peer_connection in ref$ = this._peer_connections) {
         peer_connection = ref$[peer_connection];
         results$.push(peer_connection.ws_server);
       }
       return results$;
     }.call(this)).filter(Boolean);
   };
-  x$.__register_connection = function(peer_connection, host, port){
-    var this$ = this;
-    if (!host) {
-      host = peer_connection.remoteAddress;
-    }
-    if (!port) {
-      port = peer_connection.remotePort;
-    }
-    this.peer_connections[host + ":" + port] = peer_connection;
+  /**
+   * @param {SimplePeer} peer_connection
+   */
+  x$._register_connection = function(peer_connection){
+    var ip, port, this$ = this;
+    ip = peer_connection.remoteAddress;
+    port = peer_connection.remotePort;
+    this._peer_connections[ip + ":" + port] = peer_connection;
     peer_connection.on('close', function(){
-      delete this$.peer_connections[host + ":" + port];
+      delete this$._peer_connections[ip + ":" + port];
     });
   };
-  x$.__register_ws_connection_alias = function(webrtc_host, webrtc_port, websocket_host, websocket_port){
+  x$._register_ws_connection_alias = function(webrtc_host, webrtc_port, websocket_host, websocket_port){
     var peer_connection, this$ = this;
-    peer_connection = this.peer_connections[webrtc_host + ":" + webrtc_port];
-    this.ws_connections_aliases[websocket_host + ":" + websocket_port] = peer_connection;
+    peer_connection = this._peer_connections[webrtc_host + ":" + webrtc_port];
+    this._ws_connections_aliases[websocket_host + ":" + websocket_port] = peer_connection;
     peer_connection.on('close', function(){
-      delete this$.ws_connections_aliases[websocket_host + ":" + websocket_port];
+      delete this$._ws_connections_aliases[websocket_host + ":" + websocket_port];
     });
   };
 }).call(this);
 
 }).call(this,require("buffer").Buffer)
-},{"bencode":5,"buffer":15,"debug":18,"simple-peer":51,"wrtc":59,"ws":12}],61:[function(require,module,exports){
+},{"bencode":5,"buffer":15,"debug":18,"simple-peer":48,"wrtc":56,"ws":12}],58:[function(require,module,exports){
 // Generated by LiveScript 1.5.0
 /**
  * @package   WebTorrent DHT
@@ -11763,5 +11509,5 @@ exports.RTCSessionDescription = RTCSessionDescription;
   };
 }).call(this);
 
-},{"./k-rpc-webrtc":2,"bittorrent-dht":8,"inherits":23}]},{},[61])(61)
+},{"./k-rpc-webrtc":2,"bittorrent-dht":8,"inherits":23}]},{},[58])(58)
 });
