@@ -6,7 +6,6 @@
  */
 bencode					= require('bencode')
 debug					= require('debug')('webtorrent-dht')
-#lz-string				= require('lz-string')
 simple-peer				= require('simple-peer')
 wrtc					= require('wrtc')
 ws						= require('ws')
@@ -89,11 +88,9 @@ webrtc-socket::
 		@_listeners.[][eventName].push(listener)
 	..send = (buffer, offset, length, port, address, callback) !->
 		if @_peer_connections["#address:#port"]
-#			buffer = @__compress(buffer)
 			@_peer_connections["#address:#port"].send(buffer)
 			callback()
 		else if @_ws_connections_aliases["#address:#port"]
-#			buffer = @__compress(buffer)
 			@_ws_connections_aliases["#address:#port"].send(buffer)
 			callback()
 		else if @_pending_peer_connections["#address:#port"]
@@ -175,7 +172,6 @@ webrtc-socket::
 				)
 			)
 			..on('data', (data) !~>
-#				data = @__decompress(data)
 				if debug.enabled
 					debug('got data: %o, %s', data, data.toString())
 				try
@@ -253,21 +249,3 @@ webrtc-socket::
 		peer_connection.on('close', !~>
 			delete @_ws_connections_aliases["#websocket_host:#websocket_port"]
 		)
-# TODO: some optional mechanism for exchanging supported compression methods and other metadata would be useful, possibly send them alongside signaling
-#	..__compress = (buffer) ->
-#		if lz-string # Allows building without lz-string if compression is not desired
-#			# TODO: should be straight binary
-#			data	= buffer.toString('hex')
-#			data	= lz-string.compressToUint8Array(data)
-#			data	= (
-#				new Uint8Array(data.length + 2)
-#					..set(Buffer.from('lz')) # add a mark that this is lz-compressed data
-#					..set(data, 2)
-#			)
-#		data
-#	..__decompress = (data) ->
-#		if Buffer.from(data.slice(0, 2)).toString() == 'lz' # compression was used, but be ready for no compression
-#			data	= lz-string.decompressFromUint8Array(data.slice(2))
-#			# TODO: should be straight binary
-#			data	= Buffer.from(data, 'hex')
-#		data
