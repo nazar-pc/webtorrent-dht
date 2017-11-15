@@ -68,7 +68,7 @@ Example
 
 Extensions
 ==========
-"extensions" key sent alongside WebRTC signaling data is an array of arbitrary elements (depends on extension implementation), each of which represents a single extension.
+"extensions" key sent alongside WebRTC signaling data is an array of arbitrary strings (depends on extension implementation), each of which represents a single extension.
 When node supports an extension (unsupported extensions are silently ignored) sent with SDP offer message and is willing to use it, node will add corresponding extension to "extensions" array of SDP answer message.
 
 When connection is established, communication between nodes might differ from communication between nodes that do not use any extensions.
