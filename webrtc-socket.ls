@@ -239,9 +239,11 @@ webrtc-socket::
 	 * @param {SimplePeer} peer_connection
 	 */
 	.._register_connection = (peer_connection) !->
-		@_peer_connections["#{peer_connection.remoteAddress}:#{peer_connection.remotePort}"]	= peer_connection
+		ip								= peer_connection.remoteAddress
+		port							= peer_connection.remotePort
+		@_peer_connections["#ip:#port"]	= peer_connection
 		peer_connection.on('close', !~>
-			delete @_peer_connections["#host:#port"]
+			delete @_peer_connections["#ip:#port"]
 		)
 	.._register_ws_connection_alias = (webrtc_host, webrtc_port, websocket_host, websocket_port) !->
 		peer_connection												= @_peer_connections["#webrtc_host:#webrtc_port"]
