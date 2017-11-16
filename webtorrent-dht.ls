@@ -12,6 +12,8 @@ noop			= ->
 
 /**
  * k-rpc modified to work with WebRTC
+ *
+ * @constructor
  */
 !function webtorrent-dht (options = {})
 	if !(@ instanceof webtorrent-dht)

@@ -17,6 +17,8 @@ SIMPLE_PEER_OPTS		= {
 }
 /**
  * WebRTC socket implements a minimal subset of `dgram` interface necessary for `k-rpc-socket` while using WebRTC as transport layer instead of UDP
+ *
+ * @constructor
  */
 !function webrtc-socket (options = {})
 	if !(@ instanceof webrtc-socket)

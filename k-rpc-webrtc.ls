@@ -21,6 +21,8 @@ BOOTSTRAP_NODES		= [
 ]
 /**
  * k-rpc modified to work with WebRTC
+ *
+ * @constructor
  */
 !function k-rpc-webrtc (options = {})
 	if !(@ instanceof k-rpc-webrtc)

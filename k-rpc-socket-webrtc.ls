@@ -25,10 +25,23 @@ function parse_info (buffer)
 	host	= buffer[0] + '.' + buffer[1] + '.' + buffer[2] + '.' + buffer[3]
 	port	= buffer.readUInt16BE(4)
 	{host, port}
+/**
+ * @param {Buffer}	id
+ * @param {string}	ip
+ * @param {number}	port
+ *
+ * @return {Buffer}
+ */
 function encode_node (id, ip, port)
-	id		= Buffer.from(id) # Either buffer or string
+	id		= Buffer.from(id)
 	info	= encode_info(ip, port)
 	Buffer.concat([id, info])
+/**
+ * @param {string}	ip
+ * @param {number}	port
+ *
+ * @return {Buffer}
+ */
 function encode_info (ip, port)
 	ip		= Buffer.from(
 		ip
@@ -40,23 +53,25 @@ function encode_info (ip, port)
 		Buffer.alloc(2)
 			..writeUInt16BE(port)
 	)
-	Buffer.concat([ip, port], 6)
+	Buffer.concat([ip, port])
 /**
  * k-rpc-socket modified to work with WebRTC
+ *
+ * @constructor
  */
 !function k-rpc-socket-webrtc (options = {})
 	if !(@ instanceof k-rpc-socket-webrtc)
 		return new k-rpc-socket-webrtc(options)
+	options	= Object.assign({}, options)
 	if !options.k
 		throw new Error('k-rpc-socket-webrtc requires options.k to be specified explicitly')
-	@k	= options.k
+	@_k	= options.k
 	if !options.id
 		throw new Error('k-rpc-socket-webrtc requires options.id to be specified explicitly')
 	if Buffer.isBuffer(options.id)
 		@id	= options.id
 	else
 		@id	= Buffer.from(options.id, 'hex')
-	options			= Object.assign({}, options)
 	options.socket	= options.socket || webrtc-socket(options)
 	options.isIP	= isIP
 	@_id_length		= options.id.length
@@ -124,7 +139,7 @@ k-rpc-socket-webrtc::
 		switch query.q.toString()
 			case 'find_node', 'get_peers', 'get'
 				Promise.all(
-					for i from 0 til @k
+					for i from 0 til @_k
 						new Promise (resolve) !~>
 							peer_connection = @socket.prepare_connection(true)
 								..on('signal', (signal) !~>

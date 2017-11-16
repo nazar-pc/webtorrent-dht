@@ -20,6 +20,8 @@
   }];
   /**
    * k-rpc modified to work with WebRTC
+   *
+   * @constructor
    */
   function kRpcWebrtc(options){
     var this$ = this;

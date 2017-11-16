@@ -44,32 +44,48 @@
       port: port
     };
   }
+  /**
+   * @param {Buffer}	id
+   * @param {string}	ip
+   * @param {number}	port
+   *
+   * @return {Buffer}
+   */
   function encode_node(id, ip, port){
     var info;
     id = Buffer.from(id);
     info = encode_info(ip, port);
     return Buffer.concat([id, info]);
   }
+  /**
+   * @param {string}	ip
+   * @param {number}	port
+   *
+   * @return {Buffer}
+   */
   function encode_info(ip, port){
     var x$;
     ip = Buffer.from(ip.split('.').map(function(octet){
       return parseInt(octet, 10);
     }));
     port = (x$ = Buffer.alloc(2), x$.writeUInt16BE(port), x$);
-    return Buffer.concat([ip, port], 6);
+    return Buffer.concat([ip, port]);
   }
   /**
    * k-rpc-socket modified to work with WebRTC
+   *
+   * @constructor
    */
   function kRpcSocketWebrtc(options){
     options == null && (options = {});
     if (!(this instanceof kRpcSocketWebrtc)) {
       return new kRpcSocketWebrtc(options);
     }
+    options = Object.assign({}, options);
     if (!options.k) {
       throw new Error('k-rpc-socket-webrtc requires options.k to be specified explicitly');
     }
-    this.k = options.k;
+    this._k = options.k;
     if (!options.id) {
       throw new Error('k-rpc-socket-webrtc requires options.id to be specified explicitly');
     }
@@ -78,7 +94,6 @@
     } else {
       this.id = Buffer.from(options.id, 'hex');
     }
-    options = Object.assign({}, options);
     options.socket = options.socket || webrtcSocket(options);
     options.isIP = isIP;
     this._id_length = options.id.length;
@@ -181,7 +196,7 @@
     case 'get':
       Promise.all((function(){
         var i$, to$, results$ = [];
-        for (i$ = 0, to$ = this.k; i$ < to$; ++i$) {
+        for (i$ = 0, to$ = this._k; i$ < to$; ++i$) {
           i = i$;
           results$.push(new Promise(fn$));
         }

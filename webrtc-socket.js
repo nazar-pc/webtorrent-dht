@@ -20,6 +20,8 @@
   };
   /**
    * WebRTC socket implements a minimal subset of `dgram` interface necessary for `k-rpc-socket` while using WebRTC as transport layer instead of UDP
+   *
+   * @constructor
    */
   function webrtcSocket(options){
     options == null && (options = {});

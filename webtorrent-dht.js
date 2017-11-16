@@ -14,6 +14,8 @@
   noop = function(){};
   /**
    * k-rpc modified to work with WebRTC
+   *
+   * @constructor
    */
   function webtorrentDht(options){
     options == null && (options = {});
