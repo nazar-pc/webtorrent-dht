@@ -38,10 +38,10 @@ BOOTSTRAP_NODES		= [
 		@nodes.remove(Buffer.from(id, 'hex'))
 	)
 	@nodes.on('added', (peer) !~>
-		@socket.socket.add_id_mapping(peer.id.toString('hex'), peer.host || peer.address, peer.port)
+		@socket.socket.add_association(peer.id.toString('hex'), 'k-rpc-webrtc')
 	)
 	@nodes.on('removed', (peer) !~>
-		@socket.socket.del_id_mapping(peer.id.toString('hex'))
+		@socket.socket.del_association(peer.id.toString('hex'), 'k-rpc-webrtc')
 	)
 
 inherits(noop, k-rpc)

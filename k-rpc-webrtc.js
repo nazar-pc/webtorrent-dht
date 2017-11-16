@@ -39,10 +39,10 @@
       this$.nodes.remove(Buffer.from(id, 'hex'));
     });
     this.nodes.on('added', function(peer){
-      this$.socket.socket.add_id_mapping(peer.id.toString('hex'), peer.host || peer.address, peer.port);
+      this$.socket.socket.add_association(peer.id.toString('hex'), 'k-rpc-webrtc');
     });
     this.nodes.on('removed', function(peer){
-      this$.socket.socket.del_id_mapping(peer.id.toString('hex'));
+      this$.socket.socket.del_association(peer.id.toString('hex'), 'k-rpc-webrtc');
     });
   }
   inherits(noop, kRpc);

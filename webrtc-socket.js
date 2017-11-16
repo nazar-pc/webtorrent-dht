@@ -215,7 +215,7 @@
     var x$, peer_connection, this$ = this;
     debug('prepare connection, initiator: %s', initiator);
     setTimeout(function(){
-      if (!peer_connection.connected || !peer_connection.id) {
+      if (!peer_connection.connected || !peer_connection._associations.size()) {
         peer_connection.destroy();
       }
     }, this._peer_connection_timeout);
@@ -282,23 +282,27 @@
       }
       this$._simple_peer_constructor.prototype.signal.call(peer_connection, signal);
     };
+    x$._associations = new Set;
     return x$;
   };
   /**
    * @param {string}	id
-   * @param {string}	ip
-   * @param {number}	port
+   * @param {!Object}	peer_connection
    */
-  x$.add_id_mapping = function(id, ip, port){
-    var peer_connection, this$ = this;
-    if (!this._peer_connections[ip + ":" + port]) {
-      debug('bad peer specified for id mapping: %s => %o', id, {
-        ip: ip,
-        port: port
-      });
-      return;
+  x$.add_id_mapping = function(id, peer_connection){
+    var ip, port, this$ = this;
+    if (!(peer_connection instanceof simplePeer)) {
+      ip = peer_connection.host || peer_connection.address;
+      port = peer_connection.port;
+      if (!this._peer_connections[ip + ":" + port]) {
+        debug('bad peer specified for id mapping: %s => %o', id, {
+          ip: ip,
+          port: port
+        });
+        return;
+      }
+      peer_connection = this._peer_connections[ip + ":" + port];
     }
-    peer_connection = this._peer_connections[ip + ":" + port];
     this._connections_id_mapping[id] = peer_connection;
     peer_connection.id = id;
     this.emit('node_connected', id);
@@ -316,13 +320,29 @@
   };
   /**
    * @param {string} id
+   * @param {string} association
    */
-  x$.del_id_mapping = function(id){
+  x$.add_association = function(id, association){
+    var peer_connection;
+    peer_connection = this.get_id_mapping(id);
+    if (peer_connection) {
+      peer_connection._associations.add(association);
+    }
+  };
+  /**
+   * @param {string} id
+   * @param {string} association
+   */
+  x$.del_association = function(id, association){
     var peer_connection;
     if (!this._connections_id_mapping[id]) {
       return;
     }
     peer_connection = this._connections_id_mapping[id];
+    peer_connection._associations['delete'](association);
+    if (peer_connection._associations.size()) {
+      return;
+    }
     delete this._connections_id_mapping[id];
     if (!peer_connection.destroyed) {
       peer_connection.destroy();

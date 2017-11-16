@@ -159,7 +159,7 @@ webrtc-socket::
 		debug('prepare connection, initiator: %s', initiator)
 		# We're creating some connections upfront, while they might not be ever used, so let's drop them after timeout
 		setTimeout (!~>
-			if !peer_connection.connected || !peer_connection.id
+			if !peer_connection.connected || !peer_connection._associations.size()
 				peer_connection.destroy()
 		), @_peer_connection_timeout
 		peer_connection = @_simple_peer_constructor(Object.assign({}, @_simple_peer_opts, {initiator}))
@@ -211,16 +211,19 @@ webrtc-socket::
 					if extensions.length
 						@emit('extensions_received', peer_connection, extensions)
 				@_simple_peer_constructor::signal.call(peer_connection, signal)
+			.._associations = new Set
 	/**
 	 * @param {string}	id
-	 * @param {string}	ip
-	 * @param {number}	port
+	 * @param {!Object}	peer_connection
 	 */
-	..add_id_mapping = (id, ip, port) !->
-		if !@_peer_connections["#ip:#port"]
-			debug('bad peer specified for id mapping: %s => %o', id, {ip, port})
-			return
-		peer_connection					= @_peer_connections["#ip:#port"]
+	..add_id_mapping = (id, peer_connection) !->
+		if !(peer_connection instanceof simple-peer)
+			ip		= peer_connection.host || peer_connection.address
+			port	= peer_connection.port
+			if !@_peer_connections["#ip:#port"]
+				debug('bad peer specified for id mapping: %s => %o', id, {ip, port})
+				return
+			peer_connection = @_peer_connections["#ip:#port"]
 		@_connections_id_mapping[id]	= peer_connection
 		peer_connection.id				= id
 		@emit('node_connected', id)
@@ -236,11 +239,24 @@ webrtc-socket::
 		@_connections_id_mapping[id]
 	/**
 	 * @param {string} id
+	 * @param {string} association
 	 */
-	..del_id_mapping = (id) !->
+	..add_association = (id, association) !->
+		peer_connection	= @get_id_mapping(id)
+		if peer_connection
+			peer_connection._associations.add(association)
+	/**
+	 * @param {string} id
+	 * @param {string} association
+	 */
+	..del_association = (id, association) !->
 		if !@_connections_id_mapping[id]
 			return
 		peer_connection	= @_connections_id_mapping[id]
+		peer_connection._associations.delete(association)
+		if peer_connection._associations.size()
+			# Do not disconnect while there are still some associations
+			return
 		delete @_connections_id_mapping[id]
 		if !peer_connection.destroyed
 			peer_connection.destroy()
