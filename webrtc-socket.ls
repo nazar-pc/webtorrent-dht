@@ -181,15 +181,17 @@ webrtc-socket::
 			..on('data', (data) !~>
 				if debug.enabled
 					debug('got data: %o, %s', data, data.toString())
-				try
-					data_decoded = bencode.decode(data)
-					if data_decoded.ws_server
-						# Peer says it has WebSockets server running, so we can connect to it later directly
-						peer_connection.ws_server = {
-							host	: data_decoded.ws_server.toString()
-							port	: data_decoded.ws_server.port
-						}
-						return
+				if !peer_connection._ws_info_checked
+					peer_connection._ws_info_checked	= true
+					try
+						data_decoded = bencode.decode(data)
+						if data_decoded.ws_server
+							# Peer says it has WebSockets server running, so we can connect to it later directly
+							peer_connection.ws_server = {
+								host	: data_decoded.ws_server.toString()
+								port	: data_decoded.ws_server.port
+							}
+							return
 				# Only `Buffer` format is used for DHT
 				if Buffer.isBuffer(data)
 					@emit('message', data, {

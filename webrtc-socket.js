@@ -245,16 +245,19 @@
       if (debug.enabled) {
         debug('got data: %o, %s', data, data.toString());
       }
-      try {
-        data_decoded = bencode.decode(data);
-        if (data_decoded.ws_server) {
-          peer_connection.ws_server = {
-            host: data_decoded.ws_server.toString(),
-            port: data_decoded.ws_server.port
-          };
-          return;
-        }
-      } catch (e$) {}
+      if (!peer_connection._ws_info_checked) {
+        peer_connection._ws_info_checked = true;
+        try {
+          data_decoded = bencode.decode(data);
+          if (data_decoded.ws_server) {
+            peer_connection.ws_server = {
+              host: data_decoded.ws_server.toString(),
+              port: data_decoded.ws_server.port
+            };
+            return;
+          }
+        } catch (e$) {}
+      }
       if (Buffer.isBuffer(data)) {
         this$.emit('message', data, {
           address: peer_connection.remoteAddress,
