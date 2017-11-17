@@ -9,6 +9,7 @@ Assuming you're familiar with [bittorrent-dht](https://github.com/webtorrent/bit
 Also `K` in WebTorrent DHT defaults to `2`, which is much more reasonable for WebRTC realities.
 
 Additional options specific to WebTorrent DHT are:
+* `extensions` - Array of strings with extensions supported by current node
 * `simple_peer_opts` - Object as in [simple-peer constructor](https://github.com/feross/simple-peer#peer--new-simplepeeropts), used by `webrtc-socket`
 * `simple_peer_constructor` - Custom implementation of `simple-peer`, in case it is necessary
 * `ws_address` - Object with keys `address` and `port` that corresponds to running WebSocket server (specify this in case when publicly accessible address/port are different from those where WebSocket server is listening on), used by `webrtc-socket`
@@ -84,6 +85,7 @@ There are a few of public methods exposed by `webrtc-socket`:
 There are also a few events exposed by `webrtc-socket`:
 * `node_connected` with string argument `id` - Is fired when there is a new connection established
 * `node_disconnected` with string argument `id` - Is fired when there is a connection was closed
+* `extensions_received` with arguments `peer_connection` (`simple-peer` instance) and an array `extensions` - If fired when extensions are received from the other peer
 
 ## Contribution
 Feel free to create issues and send pull requests (for big changes create an issue first and link it from the PR), they are highly appreciated!
