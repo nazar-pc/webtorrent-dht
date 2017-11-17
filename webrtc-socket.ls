@@ -231,6 +231,9 @@ webrtc-socket::
 		peer_connection.on('close', !~>
 			@_del_id_mapping(id)
 		)
+	/**
+	 * @param {string} id
+	 */
 	.._del_id_mapping = (id) !->
 		if !@_connections_id_mapping[id]
 			return

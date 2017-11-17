@@ -295,6 +295,9 @@
       this$._del_id_mapping(id);
     });
   };
+  /**
+   * @param {string} id
+   */
   x$._del_id_mapping = function(id){
     var peer_connection;
     if (!this._connections_id_mapping[id]) {
