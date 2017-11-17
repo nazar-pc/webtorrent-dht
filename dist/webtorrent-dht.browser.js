@@ -46,32 +46,48 @@
       port: port
     };
   }
+  /**
+   * @param {Buffer}	id
+   * @param {string}	ip
+   * @param {number}	port
+   *
+   * @return {Buffer}
+   */
   function encode_node(id, ip, port){
     var info;
     id = Buffer.from(id);
     info = encode_info(ip, port);
     return Buffer.concat([id, info]);
   }
+  /**
+   * @param {string}	ip
+   * @param {number}	port
+   *
+   * @return {Buffer}
+   */
   function encode_info(ip, port){
     var x$;
     ip = Buffer.from(ip.split('.').map(function(octet){
       return parseInt(octet, 10);
     }));
     port = (x$ = Buffer.alloc(2), x$.writeUInt16BE(port), x$);
-    return Buffer.concat([ip, port], 6);
+    return Buffer.concat([ip, port]);
   }
   /**
    * k-rpc-socket modified to work with WebRTC
+   *
+   * @constructor
    */
   function kRpcSocketWebrtc(options){
     options == null && (options = {});
     if (!(this instanceof kRpcSocketWebrtc)) {
       return new kRpcSocketWebrtc(options);
     }
+    options = Object.assign({}, options);
     if (!options.k) {
       throw new Error('k-rpc-socket-webrtc requires options.k to be specified explicitly');
     }
-    this.k = options.k;
+    this._k = options.k;
     if (!options.id) {
       throw new Error('k-rpc-socket-webrtc requires options.id to be specified explicitly');
     }
@@ -80,7 +96,6 @@
     } else {
       this.id = Buffer.from(options.id, 'hex');
     }
-    options = Object.assign({}, options);
     options.socket = options.socket || webrtcSocket(options);
     options.isIP = isIP;
     this._id_length = options.id.length;
@@ -183,14 +198,14 @@
     case 'get':
       Promise.all((function(){
         var i$, to$, results$ = [];
-        for (i$ = 0, to$ = this.k; i$ < to$; ++i$) {
+        for (i$ = 0, to$ = this._k; i$ < to$; ++i$) {
           i = i$;
           results$.push(new Promise(fn$));
         }
         return results$;
         function fn$(resolve){
           var x$, peer_connection;
-          x$ = peer_connection = this$.socket.prepare_connection(true);
+          x$ = peer_connection = this$.socket._prepare_connection(true);
           x$.on('signal', function(signal){
             signal.id = this$.id;
             signal.extensions = this$._extensions;
@@ -256,6 +271,7 @@
                       var x$, peer_connection;
                       x$ = peer_connection = peer_connections[i];
                       x$.on('connect', function(){
+                        this$.socket._add_id_mapping(signal_id_hex, peer_connection);
                         if (response.r.nodes) {
                           resolve(encode_node(response.r.nodes.slice(i * this$._info_length, i * this$._info_length + this$._id_length), peer_connection.remoteAddress, peer_connection.remotePort));
                         } else if (response.r.values) {
@@ -290,7 +306,7 @@
     }
   };
   x$.emit = function(event){
-    var args, res$, i$, to$, message, peer, ref$, ref1$, signal, signal_id_hex, x$, peer_connection, this$ = this;
+    var args, res$, i$, to$, message, peer, ref$, ref1$, ref2$, signal, signal_id_hex, x$, peer_connection, ref3$, this$ = this;
     res$ = [];
     for (i$ = 1, to$ = arguments.length; i$ < to$; ++i$) {
       res$.push(arguments[i$]);
@@ -299,9 +315,12 @@
     switch (event) {
     case 'query':
       message = args[0], peer = args[1];
-      switch ((ref$ = message.q) != null && (typeof ref$.toString == 'function' && ref$.toString())) {
+      if ((ref$ = message.a) != null && ref$.id) {
+        this.socket._add_id_mapping(message.a.id.toString('hex'), peer);
+      }
+      switch ((ref1$ = message.q) != null && (typeof ref1$.toString == 'function' && ref1$.toString())) {
       case 'peer_connection':
-        if ((ref1$ = message.a) != null && ref1$.signal) {
+        if ((ref2$ = message.a) != null && ref2$.signal) {
           signal = message.a.signal;
           signal_id_hex = signal.id.toString('hex');
           if (signal_id_hex === this.id.toString('hex') || this.socket.get_id_mapping(signal_id_hex)) {
@@ -312,7 +331,10 @@
               }
             });
           } else {
-            x$ = peer_connection = this.socket.prepare_connection(false);
+            x$ = peer_connection = this.socket._prepare_connection(false);
+            x$.on('connect', function(){
+              this$.socket._add_id_mapping(signal_id_hex, peer_connection);
+            });
             x$.on('signal', function(signal){
               signal.id = this$.id;
               signal.extensions = this$._extensions;
@@ -328,6 +350,12 @@
           }
         }
         break;
+      }
+      break;
+    case 'response':
+      message = args[0], peer = args[1];
+      if ((ref3$ = message.r) != null && ref3$.id) {
+        this.socket._add_id_mapping(message.r.id.toString('hex'), peer);
       }
       break;
     }
@@ -360,6 +388,8 @@
   }];
   /**
    * k-rpc modified to work with WebRTC
+   *
+   * @constructor
    */
   function kRpcWebrtc(options){
     var this$ = this;
@@ -377,10 +407,10 @@
       this$.nodes.remove(Buffer.from(id, 'hex'));
     });
     this.nodes.on('added', function(peer){
-      this$.socket.socket.add_id_mapping(peer.id.toString('hex'), peer.host || peer.address, peer.port);
+      this$.socket.socket.add_tag(peer.id.toString('hex'), 'k-rpc-webrtc');
     });
     this.nodes.on('removed', function(peer){
-      this$.socket.socket.del_id_mapping(peer.id.toString('hex'));
+      this$.socket.socket.del_tag(peer.id.toString('hex'), 'k-rpc-webrtc');
     });
   }
   inherits(noop, kRpc);
@@ -11132,9 +11162,11 @@ exports.RTCSessionDescription = RTCSessionDescription;
  * @license   MIT License, see license.txt
  */
 (function(){
-  var bencode, debug, simplePeer, wrtc, ws, PEER_CONNECTION_TIMEOUT, SIMPLE_PEER_OPTS, x$, slice$ = [].slice;
+  var bencode, debug, EventEmitter, inherits, simplePeer, wrtc, ws, PEER_CONNECTION_TIMEOUT, SIMPLE_PEER_OPTS, x$, slice$ = [].slice;
   bencode = require('bencode');
   debug = require('debug')('webtorrent-dht');
+  EventEmitter = require('events').EventEmitter;
+  inherits = require('inherits');
   simplePeer = require('simple-peer');
   wrtc = require('wrtc');
   ws = require('ws');
@@ -11146,6 +11178,8 @@ exports.RTCSessionDescription = RTCSessionDescription;
   };
   /**
    * WebRTC socket implements a minimal subset of `dgram` interface necessary for `k-rpc-socket` while using WebRTC as transport layer instead of UDP
+   *
+   * @constructor
    */
   function webrtcSocket(options){
     options == null && (options = {});
@@ -11162,7 +11196,9 @@ exports.RTCSessionDescription = RTCSessionDescription;
     this._ws_connections_aliases = {};
     this._pending_peer_connections = {};
     this._connections_id_mapping = {};
+    EventEmitter.call(this);
   }
+  inherits(webrtcSocket, EventEmitter);
   x$ = webrtcSocket.prototype;
   x$.address = function(){
     if (this.ws_server) {
@@ -11198,7 +11234,7 @@ exports.RTCSessionDescription = RTCSessionDescription;
     x$.on('connection', function(ws_connection){
       var x$, peer_connection;
       debug('accepted WS connection');
-      x$ = peer_connection = this$.prepare_connection(true);
+      x$ = peer_connection = this$._prepare_connection(true);
       x$.on('signal', function(signal){
         debug('got signal for WS (server): %s', signal);
         signal.extensions = this$._extensions;
@@ -11237,25 +11273,6 @@ exports.RTCSessionDescription = RTCSessionDescription;
       this.ws_server.close();
     }
   };
-  x$.emit = function(eventName){
-    var args, res$, i$, to$, ref$, len$, listener, results$ = [];
-    res$ = [];
-    for (i$ = 1, to$ = arguments.length; i$ < to$; ++i$) {
-      res$.push(arguments[i$]);
-    }
-    args = res$;
-    if (this._listeners[eventName]) {
-      for (i$ = 0, len$ = (ref$ = this._listeners[eventName]).length; i$ < len$; ++i$) {
-        listener = ref$[i$];
-        results$.push(listener.apply(null, args));
-      }
-      return results$;
-    }
-  };
-  x$.on = function(eventName, listener){
-    var ref$;
-    ((ref$ = this._listeners)[eventName] || (ref$[eventName] = [])).push(listener);
-  };
   x$.send = function(buffer, offset, length, port, address, callback){
     var this$ = this;
     if (this._peer_connections[address + ":" + port]) {
@@ -11284,7 +11301,7 @@ exports.RTCSessionDescription = RTCSessionDescription;
           x$.onopen = function(){
             var x$, peer_connection;
             debug('opened WS connection');
-            x$ = peer_connection = this$.prepare_connection(false);
+            x$ = peer_connection = this$._prepare_connection(false);
             x$.on('signal', function(signal){
               debug('got signal for WS (client): %s', signal);
               signal.extensions = this$._extensions;
@@ -11335,11 +11352,11 @@ exports.RTCSessionDescription = RTCSessionDescription;
    *
    * @return {SimplePeer}
    */
-  x$.prepare_connection = function(initiator){
+  x$._prepare_connection = function(initiator){
     var x$, peer_connection, this$ = this;
     debug('prepare connection, initiator: %s', initiator);
     setTimeout(function(){
-      if (!peer_connection.connected || !peer_connection.id) {
+      if (!peer_connection.connected || !peer_connection._tags.size) {
         peer_connection.destroy();
       }
     }, this._peer_connection_timeout);
@@ -11369,16 +11386,19 @@ exports.RTCSessionDescription = RTCSessionDescription;
       if (debug.enabled) {
         debug('got data: %o, %s', data, data.toString());
       }
-      try {
-        data_decoded = bencode.decode(data);
-        if (data_decoded.ws_server) {
-          peer_connection.ws_server = {
-            host: data_decoded.ws_server.toString(),
-            port: data_decoded.ws_server.port
-          };
-          return;
-        }
-      } catch (e$) {}
+      if (!peer_connection._ws_info_checked) {
+        peer_connection._ws_info_checked = true;
+        try {
+          data_decoded = bencode.decode(data);
+          if (data_decoded.ws_server) {
+            peer_connection.ws_server = {
+              host: data_decoded.ws_server.toString(),
+              port: data_decoded.ws_server.port
+            };
+            return;
+          }
+        } catch (e$) {}
+      }
       if (Buffer.isBuffer(data)) {
         this$.emit('message', data, {
           address: peer_connection.remoteAddress,
@@ -11393,37 +11413,58 @@ exports.RTCSessionDescription = RTCSessionDescription;
     x$.setMaxListeners(0);
     x$.signal = function(signal){
       var extensions;
-      extensions = signal.extensions.map(function(extension){
-        return extension + "";
-      });
-      if (extensions.length) {
-        this$.emit('extensions_received', peer_connection, extensions);
+      if (signal.extensions) {
+        extensions = signal.extensions.map(function(extension){
+          return extension + "";
+        });
+        if (extensions.length) {
+          this$.emit('extensions_received', peer_connection, extensions);
+        }
       }
       this$._simple_peer_constructor.prototype.signal.call(peer_connection, signal);
     };
+    x$._tags = new Set;
     return x$;
   };
   /**
    * @param {string}	id
-   * @param {string}	ip
-   * @param {number}	port
+   * @param {!Object}	peer_connection
    */
-  x$.add_id_mapping = function(id, ip, port){
-    var peer_connection, this$ = this;
-    if (!this._peer_connections[ip + ":" + port]) {
-      debug('bad peer specified for id mapping: %s => %o', id, {
-        ip: ip,
-        port: port
-      });
-      return;
+  x$._add_id_mapping = function(id, peer_connection){
+    var ip, port, this$ = this;
+    if (!(peer_connection instanceof simplePeer)) {
+      ip = peer_connection.host || peer_connection.address;
+      port = peer_connection.port;
+      if (!this._peer_connections[ip + ":" + port]) {
+        debug('bad peer specified for id mapping: %s => %o', id, {
+          ip: ip,
+          port: port
+        });
+        return;
+      }
+      peer_connection = this._peer_connections[ip + ":" + port];
     }
-    peer_connection = this._peer_connections[ip + ":" + port];
     this._connections_id_mapping[id] = peer_connection;
     peer_connection.id = id;
     this.emit('node_connected', id);
     peer_connection.on('close', function(){
-      this$.del_id_mapping(id);
+      this$._del_id_mapping(id);
     });
+  };
+  x$._del_id_mapping = function(id){
+    var peer_connection;
+    if (!this._connections_id_mapping[id]) {
+      return;
+    }
+    peer_connection = this._connections_id_mapping[id];
+    if (peer_connection._tags.size) {
+      return;
+    }
+    delete this._connections_id_mapping[id];
+    if (!peer_connection.destroyed) {
+      peer_connection.destroy();
+    }
+    this.emit('node_disconnected', id);
   };
   /**
    * @param {string} id
@@ -11435,18 +11476,27 @@ exports.RTCSessionDescription = RTCSessionDescription;
   };
   /**
    * @param {string} id
+   * @param {string} tag
    */
-  x$.del_id_mapping = function(id){
+  x$.add_tag = function(id, tag){
+    var peer_connection;
+    peer_connection = this.get_id_mapping(id);
+    if (peer_connection) {
+      peer_connection._tags.add(tag);
+    }
+  };
+  /**
+   * @param {string} id
+   * @param {string} tag
+   */
+  x$.del_tag = function(id, tag){
     var peer_connection;
     if (!this._connections_id_mapping[id]) {
       return;
     }
     peer_connection = this._connections_id_mapping[id];
-    delete this._connections_id_mapping[id];
-    if (!peer_connection.destroyed) {
-      peer_connection.destroy();
-    }
-    this.emit('node_disconnected', id);
+    peer_connection._tags['delete'](tag);
+    this._del_id_mapping(id);
   };
   x$.known_ws_servers = function(){
     var peer_connection;
@@ -11482,7 +11532,7 @@ exports.RTCSessionDescription = RTCSessionDescription;
 }).call(this);
 
 }).call(this,require("buffer").Buffer)
-},{"bencode":5,"buffer":15,"debug":18,"simple-peer":48,"wrtc":56,"ws":12}],58:[function(require,module,exports){
+},{"bencode":5,"buffer":15,"debug":18,"events":20,"inherits":23,"simple-peer":48,"wrtc":56,"ws":12}],58:[function(require,module,exports){
 // Generated by LiveScript 1.5.0
 /**
  * @package   WebTorrent DHT
@@ -11499,6 +11549,8 @@ exports.RTCSessionDescription = RTCSessionDescription;
   noop = function(){};
   /**
    * k-rpc modified to work with WebRTC
+   *
+   * @constructor
    */
   function webtorrentDht(options){
     options == null && (options = {});
