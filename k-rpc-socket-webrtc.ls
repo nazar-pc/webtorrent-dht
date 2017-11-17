@@ -141,7 +141,7 @@ k-rpc-socket-webrtc::
 				Promise.all(
 					for i from 0 til @_k
 						new Promise (resolve) !~>
-							peer_connection = @socket.prepare_connection(true)
+							peer_connection = @socket._prepare_connection(true)
 								..on('signal', (signal) !~>
 									# Append node id, it is used to avoid creating unnecessary connections
 									signal.id			= @id
@@ -195,7 +195,7 @@ k-rpc-socket-webrtc::
 											new Promise (resolve) !~>
 												peer_connection	= peer_connections[i]
 													..on('connect', !~>
-														@socket.add_id_mapping(signal_id_hex, peer_connection)
+														@socket._add_id_mapping(signal_id_hex, peer_connection)
 														if response.r.nodes
 															resolve(encode_node(
 																response.r.nodes.slice(i * @_info_length, i * @_info_length + @_id_length)
@@ -231,7 +231,7 @@ k-rpc-socket-webrtc::
 			case 'query'
 				[message, peer]	= args
 				if message.a?.id
-					@socket.add_id_mapping(message.a.id.toString('hex'), peer)
+					@socket._add_id_mapping(message.a.id.toString('hex'), peer)
 				switch message.q?.toString?()
 					case 'peer_connection'
 						if message.a?.signal
@@ -244,9 +244,9 @@ k-rpc-socket-webrtc::
 									signal	: {@id}
 								})
 							else
-								peer_connection = @socket.prepare_connection(false)
+								peer_connection = @socket._prepare_connection(false)
 									..on('connect', !~>
-										@socket.add_id_mapping(signal_id_hex, peer_connection)
+										@socket._add_id_mapping(signal_id_hex, peer_connection)
 									)
 									..on('signal', (signal) !~>
 										# Append node id, it is used to avoid creating unnecessary connections
@@ -264,6 +264,6 @@ k-rpc-socket-webrtc::
 			case 'response'
 				[message, peer]	= args
 				if message.r?.id
-					@socket.add_id_mapping(message.r.id.toString('hex'), peer)
+					@socket._add_id_mapping(message.r.id.toString('hex'), peer)
 				break
 		k-rpc-socket::emit.apply(@, &)

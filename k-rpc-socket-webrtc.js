@@ -203,7 +203,7 @@
         return results$;
         function fn$(resolve){
           var x$, peer_connection;
-          x$ = peer_connection = this$.socket.prepare_connection(true);
+          x$ = peer_connection = this$.socket._prepare_connection(true);
           x$.on('signal', function(signal){
             signal.id = this$.id;
             signal.extensions = this$._extensions;
@@ -269,7 +269,7 @@
                       var x$, peer_connection;
                       x$ = peer_connection = peer_connections[i];
                       x$.on('connect', function(){
-                        this$.socket.add_id_mapping(signal_id_hex, peer_connection);
+                        this$.socket._add_id_mapping(signal_id_hex, peer_connection);
                         if (response.r.nodes) {
                           resolve(encode_node(response.r.nodes.slice(i * this$._info_length, i * this$._info_length + this$._id_length), peer_connection.remoteAddress, peer_connection.remotePort));
                         } else if (response.r.values) {
@@ -314,7 +314,7 @@
     case 'query':
       message = args[0], peer = args[1];
       if ((ref$ = message.a) != null && ref$.id) {
-        this.socket.add_id_mapping(message.a.id.toString('hex'), peer);
+        this.socket._add_id_mapping(message.a.id.toString('hex'), peer);
       }
       switch ((ref1$ = message.q) != null && (typeof ref1$.toString == 'function' && ref1$.toString())) {
       case 'peer_connection':
@@ -329,9 +329,9 @@
               }
             });
           } else {
-            x$ = peer_connection = this.socket.prepare_connection(false);
+            x$ = peer_connection = this.socket._prepare_connection(false);
             x$.on('connect', function(){
-              this$.socket.add_id_mapping(signal_id_hex, peer_connection);
+              this$.socket._add_id_mapping(signal_id_hex, peer_connection);
             });
             x$.on('signal', function(signal){
               signal.id = this$.id;
@@ -353,7 +353,7 @@
     case 'response':
       message = args[0], peer = args[1];
       if ((ref3$ = message.r) != null && ref3$.id) {
-        this.socket.add_id_mapping(message.r.id.toString('hex'), peer);
+        this.socket._add_id_mapping(message.r.id.toString('hex'), peer);
       }
       break;
     }

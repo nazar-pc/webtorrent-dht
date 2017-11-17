@@ -6,6 +6,8 @@
  */
 bencode					= require('bencode')
 debug					= require('debug')('webtorrent-dht')
+EventEmitter			= require('events').EventEmitter
+inherits				= require('inherits')
 simple-peer				= require('simple-peer')
 wrtc					= require('wrtc')
 ws						= require('ws')
@@ -33,6 +35,11 @@ SIMPLE_PEER_OPTS		= {
 	@_ws_connections_aliases	= {}
 	@_pending_peer_connections	= {}
 	@_connections_id_mapping	= {}
+
+	EventEmitter.call(@)
+
+inherits(webrtc-socket, EventEmitter)
+
 webrtc-socket::
 	..address = ->
 		if @ws_server
@@ -55,7 +62,7 @@ webrtc-socket::
 			)
 			..on('connection', (ws_connection) !~>
 				debug('accepted WS connection')
-				peer_connection = @prepare_connection(true)
+				peer_connection = @_prepare_connection(true)
 					..on('signal', (signal) !~>
 						debug('got signal for WS (server): %s', signal)
 						# Append any supplied extensions
@@ -85,12 +92,6 @@ webrtc-socket::
 			peer.destroy()
 		if @ws_server
 			@ws_server.close()
-	..emit = (eventName, ...args) ->
-		if @_listeners[eventName]
-			for listener in @_listeners[eventName]
-				listener(...args)
-	..on = (eventName, listener) !->
-		@_listeners.[][eventName].push(listener)
 	..send = (buffer, offset, length, port, address, callback) !->
 		if @_peer_connections["#address:#port"]
 			@_peer_connections["#address:#port"].send(buffer)
@@ -116,7 +117,7 @@ webrtc-socket::
 							debug('closed WS connection')
 						..onopen = !~>
 							debug('opened WS connection')
-							peer_connection = @prepare_connection(false)
+							peer_connection = @_prepare_connection(false)
 								..on('signal', (signal) !~>
 									debug('got signal for WS (client): %s', signal)
 									# Append any supplied extensions
@@ -155,11 +156,11 @@ webrtc-socket::
 	 *
 	 * @return {SimplePeer}
 	 */
-	..prepare_connection = (initiator) ->
+	.._prepare_connection = (initiator) ->
 		debug('prepare connection, initiator: %s', initiator)
 		# We're creating some connections upfront, while they might not be ever used, so let's drop them after timeout
 		setTimeout (!~>
-			if !peer_connection.connected || !peer_connection._associations.size()
+			if !peer_connection.connected || !peer_connection._tags.size
 				peer_connection.destroy()
 		), @_peer_connection_timeout
 		peer_connection = @_simple_peer_constructor(Object.assign({}, @_simple_peer_opts, {initiator}))
@@ -211,12 +212,12 @@ webrtc-socket::
 					if extensions.length
 						@emit('extensions_received', peer_connection, extensions)
 				@_simple_peer_constructor::signal.call(peer_connection, signal)
-			.._associations = new Set
+			.._tags = new Set
 	/**
 	 * @param {string}	id
 	 * @param {!Object}	peer_connection
 	 */
-	..add_id_mapping = (id, peer_connection) !->
+	.._add_id_mapping = (id, peer_connection) !->
 		if !(peer_connection instanceof simple-peer)
 			ip		= peer_connection.host || peer_connection.address
 			port	= peer_connection.port
@@ -228,8 +229,19 @@ webrtc-socket::
 		peer_connection.id				= id
 		@emit('node_connected', id)
 		peer_connection.on('close', !~>
-			@del_id_mapping(id)
+			@_del_id_mapping(id)
 		)
+	.._del_id_mapping = (id) !->
+		if !@_connections_id_mapping[id]
+			return
+		peer_connection	= @_connections_id_mapping[id]
+		if peer_connection._tags.size
+			# Do not disconnect while there are still some tags
+			return
+		delete @_connections_id_mapping[id]
+		if !peer_connection.destroyed
+			peer_connection.destroy()
+		@emit('node_disconnected', id)
 	/**
 	 * @param {string} id
 	 *
@@ -239,28 +251,22 @@ webrtc-socket::
 		@_connections_id_mapping[id]
 	/**
 	 * @param {string} id
-	 * @param {string} association
+	 * @param {string} tag
 	 */
-	..add_association = (id, association) !->
+	..add_tag = (id, tag) !->
 		peer_connection	= @get_id_mapping(id)
 		if peer_connection
-			peer_connection._associations.add(association)
+			peer_connection._tags.add(tag)
 	/**
 	 * @param {string} id
-	 * @param {string} association
+	 * @param {string} tag
 	 */
-	..del_association = (id, association) !->
+	..del_tag = (id, tag) !->
 		if !@_connections_id_mapping[id]
 			return
 		peer_connection	= @_connections_id_mapping[id]
-		peer_connection._associations.delete(association)
-		if peer_connection._associations.size()
-			# Do not disconnect while there are still some associations
-			return
-		delete @_connections_id_mapping[id]
-		if !peer_connection.destroyed
-			peer_connection.destroy()
-		@emit('node_disconnected', id)
+		peer_connection._tags.delete(tag)
+		@_del_id_mapping(id)
 	..known_ws_servers = ->
 		(
 			for peer_connection, peer_connection of @_peer_connections

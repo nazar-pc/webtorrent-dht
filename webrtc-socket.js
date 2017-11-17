@@ -6,9 +6,11 @@
  * @license   MIT License, see license.txt
  */
 (function(){
-  var bencode, debug, simplePeer, wrtc, ws, PEER_CONNECTION_TIMEOUT, SIMPLE_PEER_OPTS, x$, slice$ = [].slice;
+  var bencode, debug, EventEmitter, inherits, simplePeer, wrtc, ws, PEER_CONNECTION_TIMEOUT, SIMPLE_PEER_OPTS, x$, slice$ = [].slice;
   bencode = require('bencode');
   debug = require('debug')('webtorrent-dht');
+  EventEmitter = require('events').EventEmitter;
+  inherits = require('inherits');
   simplePeer = require('simple-peer');
   wrtc = require('wrtc');
   ws = require('ws');
@@ -38,7 +40,9 @@
     this._ws_connections_aliases = {};
     this._pending_peer_connections = {};
     this._connections_id_mapping = {};
+    EventEmitter.call(this);
   }
+  inherits(webrtcSocket, EventEmitter);
   x$ = webrtcSocket.prototype;
   x$.address = function(){
     if (this.ws_server) {
@@ -74,7 +78,7 @@
     x$.on('connection', function(ws_connection){
       var x$, peer_connection;
       debug('accepted WS connection');
-      x$ = peer_connection = this$.prepare_connection(true);
+      x$ = peer_connection = this$._prepare_connection(true);
       x$.on('signal', function(signal){
         debug('got signal for WS (server): %s', signal);
         signal.extensions = this$._extensions;
@@ -113,25 +117,6 @@
       this.ws_server.close();
     }
   };
-  x$.emit = function(eventName){
-    var args, res$, i$, to$, ref$, len$, listener, results$ = [];
-    res$ = [];
-    for (i$ = 1, to$ = arguments.length; i$ < to$; ++i$) {
-      res$.push(arguments[i$]);
-    }
-    args = res$;
-    if (this._listeners[eventName]) {
-      for (i$ = 0, len$ = (ref$ = this._listeners[eventName]).length; i$ < len$; ++i$) {
-        listener = ref$[i$];
-        results$.push(listener.apply(null, args));
-      }
-      return results$;
-    }
-  };
-  x$.on = function(eventName, listener){
-    var ref$;
-    ((ref$ = this._listeners)[eventName] || (ref$[eventName] = [])).push(listener);
-  };
   x$.send = function(buffer, offset, length, port, address, callback){
     var this$ = this;
     if (this._peer_connections[address + ":" + port]) {
@@ -160,7 +145,7 @@
           x$.onopen = function(){
             var x$, peer_connection;
             debug('opened WS connection');
-            x$ = peer_connection = this$.prepare_connection(false);
+            x$ = peer_connection = this$._prepare_connection(false);
             x$.on('signal', function(signal){
               debug('got signal for WS (client): %s', signal);
               signal.extensions = this$._extensions;
@@ -211,11 +196,11 @@
    *
    * @return {SimplePeer}
    */
-  x$.prepare_connection = function(initiator){
+  x$._prepare_connection = function(initiator){
     var x$, peer_connection, this$ = this;
     debug('prepare connection, initiator: %s', initiator);
     setTimeout(function(){
-      if (!peer_connection.connected || !peer_connection._associations.size()) {
+      if (!peer_connection.connected || !peer_connection._tags.size) {
         peer_connection.destroy();
       }
     }, this._peer_connection_timeout);
@@ -282,14 +267,14 @@
       }
       this$._simple_peer_constructor.prototype.signal.call(peer_connection, signal);
     };
-    x$._associations = new Set;
+    x$._tags = new Set;
     return x$;
   };
   /**
    * @param {string}	id
    * @param {!Object}	peer_connection
    */
-  x$.add_id_mapping = function(id, peer_connection){
+  x$._add_id_mapping = function(id, peer_connection){
     var ip, port, this$ = this;
     if (!(peer_connection instanceof simplePeer)) {
       ip = peer_connection.host || peer_connection.address;
@@ -307,8 +292,23 @@
     peer_connection.id = id;
     this.emit('node_connected', id);
     peer_connection.on('close', function(){
-      this$.del_id_mapping(id);
+      this$._del_id_mapping(id);
     });
+  };
+  x$._del_id_mapping = function(id){
+    var peer_connection;
+    if (!this._connections_id_mapping[id]) {
+      return;
+    }
+    peer_connection = this._connections_id_mapping[id];
+    if (peer_connection._tags.size) {
+      return;
+    }
+    delete this._connections_id_mapping[id];
+    if (!peer_connection.destroyed) {
+      peer_connection.destroy();
+    }
+    this.emit('node_disconnected', id);
   };
   /**
    * @param {string} id
@@ -320,34 +320,27 @@
   };
   /**
    * @param {string} id
-   * @param {string} association
+   * @param {string} tag
    */
-  x$.add_association = function(id, association){
+  x$.add_tag = function(id, tag){
     var peer_connection;
     peer_connection = this.get_id_mapping(id);
     if (peer_connection) {
-      peer_connection._associations.add(association);
+      peer_connection._tags.add(tag);
     }
   };
   /**
    * @param {string} id
-   * @param {string} association
+   * @param {string} tag
    */
-  x$.del_association = function(id, association){
+  x$.del_tag = function(id, tag){
     var peer_connection;
     if (!this._connections_id_mapping[id]) {
       return;
     }
     peer_connection = this._connections_id_mapping[id];
-    peer_connection._associations['delete'](association);
-    if (peer_connection._associations.size()) {
-      return;
-    }
-    delete this._connections_id_mapping[id];
-    if (!peer_connection.destroyed) {
-      peer_connection.destroy();
-    }
-    this.emit('node_disconnected', id);
+    peer_connection._tags['delete'](tag);
+    this._del_id_mapping(id);
   };
   x$.known_ws_servers = function(){
     var peer_connection;
