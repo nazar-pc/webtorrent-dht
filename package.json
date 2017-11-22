@@ -2,7 +2,7 @@
 	"name"            : "webtorrent-dht",
 	"title"           : "WebTorrent DHT",
 	"description"     : "This is an example implementation of something that might become WebTorrent DHT. It is based on BitTorrent DHT and is extended in a way that will work both in Node.js and modern browsers while keeping BitTorrent DHT interface.",
-	"version"         : "0.8.1",
+	"version"         : "0.8.2",
 	"homepage"        : "https://github.com/nazar-pc/webtorrent-dht",
 	"author"          : {
 		"name"  : "Nazar Mokrynskyi",
@@ -48,7 +48,7 @@
 		"lz-string"      : "^1.4.4",
 		"randombytes"    : "^2.0.5",
 		"simple-peer"    : "^8.1.1",
-		"wrtc"           : "0.0.62",
+		"wrtc"           : "0.0.63",
 		"ws"             : "^3.3.2"
 	},
 	"devDependencies" : {
