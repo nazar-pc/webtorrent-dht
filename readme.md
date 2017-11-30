@@ -86,6 +86,7 @@ There are also a few events exposed by `webrtc-socket`:
 * `node_connected` with string argument `id` - Is fired when there is a new connection established
 * `node_disconnected` with string argument `id` - Is fired when there is a connection was closed
 * `extensions_received` with arguments `peer_connection` (`simple-peer` instance) and an array `extensions` - If fired when extensions are received from the other peer
+* `websocket_peer_connection_alias` with arguments `host`, `port` and `peer_connection` - Is fired when peer connection is aliased by websocket host and port (from bootstrap node)
 
 ## Contribution
 Feel free to create issues and send pull requests (for big changes create an issue first and link it from the PR), they are highly appreciated!

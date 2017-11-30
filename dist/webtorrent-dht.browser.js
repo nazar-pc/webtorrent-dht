@@ -11462,6 +11462,7 @@ exports.RTCSessionDescription = RTCSessionDescription;
     var peer_connection, this$ = this;
     peer_connection = this._peer_connections[webrtc_host + ":" + webrtc_port];
     this._ws_connections_aliases[websocket_host + ":" + websocket_port] = peer_connection;
+    this.emit('websocket_peer_connection_alias', websocket_host, websocket_port, peer_connection);
     peer_connection.on('close', function(){
       delete this$._ws_connections_aliases[websocket_host + ":" + websocket_port];
     });

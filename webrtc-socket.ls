@@ -289,6 +289,7 @@ webrtc-socket::
 	.._register_ws_connection_alias = (webrtc_host, webrtc_port, websocket_host, websocket_port) !->
 		peer_connection												= @_peer_connections["#webrtc_host:#webrtc_port"]
 		@_ws_connections_aliases["#websocket_host:#websocket_port"]	= peer_connection
+		@emit('websocket_peer_connection_alias', websocket_host, websocket_port, peer_connection)
 		peer_connection.on('close', !~>
 			delete @_ws_connections_aliases["#websocket_host:#websocket_port"]
 		)
