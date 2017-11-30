@@ -11252,6 +11252,10 @@ exports.RTCSessionDescription = RTCSessionDescription;
                 port: peer_connection.remotePort
               };
               this$._register_ws_connection_alias(remote_peer_info.address, remote_peer_info.port, address, port);
+              if (peer_connection.destroyed) {
+                reject();
+                return;
+              }
               this$.send(buffer, offset, length, remote_peer_info.port, remote_peer_info.address, callback);
               resolve(remote_peer_info);
             });
@@ -11380,10 +11384,10 @@ exports.RTCSessionDescription = RTCSessionDescription;
     }
     this._connections_id_mapping[id] = peer_connection;
     peer_connection.id = id;
-    this.emit('node_connected', id);
     peer_connection.on('close', function(){
       this$._del_id_mapping(id);
     });
+    this.emit('node_connected', id);
   };
   /**
    * @param {string} id
@@ -11462,10 +11466,10 @@ exports.RTCSessionDescription = RTCSessionDescription;
     var peer_connection, this$ = this;
     peer_connection = this._peer_connections[webrtc_host + ":" + webrtc_port];
     this._ws_connections_aliases[websocket_host + ":" + websocket_port] = peer_connection;
-    this.emit('websocket_peer_connection_alias', websocket_host, websocket_port, peer_connection);
     peer_connection.on('close', function(){
       delete this$._ws_connections_aliases[websocket_host + ":" + websocket_port];
     });
+    this.emit('websocket_peer_connection_alias', websocket_host, websocket_port, peer_connection);
   };
 }).call(this);
 

@@ -133,6 +133,9 @@ webrtc-socket::
 										port	: peer_connection.remotePort
 									# Create alias for WebSocket connection
 									@_register_ws_connection_alias(remote_peer_info.address, remote_peer_info.port, address, port)
+									if peer_connection.destroyed
+										reject()
+										return
 									@send(buffer, offset, length, remote_peer_info.port, remote_peer_info.address, callback)
 									resolve(remote_peer_info)
 								)
@@ -227,10 +230,10 @@ webrtc-socket::
 			peer_connection = @_peer_connections["#ip:#port"]
 		@_connections_id_mapping[id]	= peer_connection
 		peer_connection.id				= id
-		@emit('node_connected', id)
 		peer_connection.on('close', !~>
 			@_del_id_mapping(id)
 		)
+		@emit('node_connected', id)
 	/**
 	 * @param {string} id
 	 */
@@ -289,7 +292,7 @@ webrtc-socket::
 	.._register_ws_connection_alias = (webrtc_host, webrtc_port, websocket_host, websocket_port) !->
 		peer_connection												= @_peer_connections["#webrtc_host:#webrtc_port"]
 		@_ws_connections_aliases["#websocket_host:#websocket_port"]	= peer_connection
-		@emit('websocket_peer_connection_alias', websocket_host, websocket_port, peer_connection)
 		peer_connection.on('close', !~>
 			delete @_ws_connections_aliases["#websocket_host:#websocket_port"]
 		)
+		@emit('websocket_peer_connection_alias', websocket_host, websocket_port, peer_connection)
