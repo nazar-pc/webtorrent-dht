@@ -76,7 +76,9 @@ webrtc-socket::
 					)
 				ws_connection.on('message', (data) !~>
 					try
-						signal = bencode.decode(data)
+						signal		= bencode.decode(data)
+						signal.sdp	= String(signal.sdp)
+						signal.type	= String(signal.type)
 						debug('got signal message from WS (server): %s', signal)
 						peer_connection.signal(signal)
 					catch e
@@ -141,7 +143,9 @@ webrtc-socket::
 								)
 							ws_connection.onmessage = ({data}) !~>
 								try
-									signal	= bencode.decode(data)
+									signal		= bencode.decode(data)
+									signal.sdp	= String(signal.sdp)
+									signal.type	= String(signal.type)
 									debug('got signal message from WS (client): %s', signal)
 									peer_connection.signal(signal)
 								catch e

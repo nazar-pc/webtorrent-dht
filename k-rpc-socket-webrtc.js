@@ -6,8 +6,7 @@
  * @license   MIT License, see license.txt
  */
 (function(){
-  var bencode, debug, inherits, isIP, kRpcSocket, webrtcSocket, noop, x$, slice$ = [].slice;
-  bencode = require('bencode');
+  var debug, inherits, isIP, kRpcSocket, webrtcSocket, noop, x$, slice$ = [].slice;
   debug = require('debug')('webtorrent-dht');
   inherits = require('inherits');
   isIP = require('isipaddress').test;

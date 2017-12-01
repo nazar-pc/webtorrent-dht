@@ -94,6 +94,8 @@
         var signal, e;
         try {
           signal = bencode.decode(data);
+          signal.sdp = String(signal.sdp);
+          signal.type = String(signal.type);
           debug('got signal message from WS (server): %s', signal);
           peer_connection.signal(signal);
         } catch (e$) {
@@ -174,6 +176,8 @@
               data = arg$.data;
               try {
                 signal = bencode.decode(data);
+                signal.sdp = String(signal.sdp);
+                signal.type = String(signal.type);
                 debug('got signal message from WS (client): %s', signal);
                 peer_connection.signal(signal);
               } catch (e$) {
