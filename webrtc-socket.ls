@@ -76,9 +76,7 @@ webrtc-socket::
 					)
 				ws_connection.on('message', (data) !~>
 					try
-						signal		= bencode.decode(data)
-						signal.sdp	= String(signal.sdp)
-						signal.type	= String(signal.type)
+						signal	= bencode.decode(data)
 						debug('got signal message from WS (server): %s', signal)
 						peer_connection.signal(signal)
 					catch e
@@ -143,9 +141,7 @@ webrtc-socket::
 								)
 							ws_connection.onmessage = ({data}) !~>
 								try
-									signal		= bencode.decode(data)
-									signal.sdp	= String(signal.sdp)
-									signal.type	= String(signal.type)
+									signal	= bencode.decode(data)
 									debug('got signal message from WS (client): %s', signal)
 									peer_connection.signal(signal)
 								catch e
@@ -213,11 +209,13 @@ webrtc-socket::
 			)
 			..setMaxListeners(0)
 			..signal = (signal) !~>
+				signal.sdp	= String(signal.sdp)
+				signal.type	= String(signal.type)
 				if signal.extensions
-					extensions	= signal.extensions.map (extension) ->
+					signal.extensions	= signal.extensions.map (extension) ->
 						"#extension"
-					if extensions.length
-						@emit('extensions_received', peer_connection, extensions)
+					if signal.extensions.length
+						@emit('extensions_received', peer_connection, signal.extensions)
 				@_simple_peer_constructor::signal.call(peer_connection, signal)
 			.._tags = new Set
 	/**
