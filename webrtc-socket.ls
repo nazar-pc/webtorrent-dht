@@ -245,6 +245,10 @@ webrtc-socket::
 				debug('bad peer specified for id mapping: %s => %o', id, {ip, port})
 				return
 			peer_connection = @_peer_connections["#ip:#port"]
+		if @_connections_id_mapping[id]
+			if @_connections_id_mapping[id] != peer_connection
+				peer_connection.destroy()
+			return
 		@_connections_id_mapping[id]	= peer_connection
 		peer_connection.id				= id
 		peer_connection.on('close', !~>

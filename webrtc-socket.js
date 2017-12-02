@@ -304,6 +304,12 @@
       }
       peer_connection = this._peer_connections[ip + ":" + port];
     }
+    if (this._connections_id_mapping[id]) {
+      if (this._connections_id_mapping[id] !== peer_connection) {
+        peer_connection.destroy();
+      }
+      return;
+    }
     this._connections_id_mapping[id] = peer_connection;
     peer_connection.id = id;
     peer_connection.on('close', function(){
