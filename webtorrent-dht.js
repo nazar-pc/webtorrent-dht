@@ -23,6 +23,9 @@
       return new webtorrentDht(options);
     }
     options = Object.assign({}, options);
+    if (options.hash) {
+      options.idLength = options.hash(Buffer.from('')).length;
+    }
     options.krpc = options.krpc || kRpcWebrtc(options);
     bittorrentDht.call(this, options);
   }

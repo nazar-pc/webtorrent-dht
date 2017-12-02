@@ -19,6 +19,8 @@ noop			= ->
 	if !(@ instanceof webtorrent-dht)
 		return new webtorrent-dht(options)
 	options			= Object.assign({}, options)
+	if options.hash
+		options.idLength	= options.hash(Buffer.from('')).length
 	options.krpc	= options.krpc || k-rpc-webrtc(options)
 	bittorrent-dht.call(@, options)
 
