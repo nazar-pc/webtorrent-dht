@@ -32,6 +32,7 @@ SIMPLE_PEER_OPTS		= {
 	@_extensions				= options.extensions || []
 	@_listeners					= []
 	@_peer_connections			= {}
+	@_all_peer_connections		= new Set
 	@_ws_connections_aliases	= {}
 	@_pending_peer_connections	= {}
 	@_connections_id_mapping	= {}
@@ -74,21 +75,26 @@ webrtc-socket::
 						if ws_connection.readyState == 1 # OPEN
 							ws_connection.close()
 					)
-				ws_connection.on('message', (data) !~>
-					try
-						signal	= bencode.decode(data)
-						debug('got signal message from WS (server): %s', signal)
-						peer_connection.signal(signal)
-					catch e
-						@emit('error', e)
-						ws_connection.close()
-				)
-				setTimeout (!->
+				ws_connection
+					..on('message', (data) !~>
+						try
+							signal	= bencode.decode(data)
+							debug('got signal message from WS (server): %s', signal)
+							peer_connection.signal(signal)
+						catch e
+							@emit('error', e)
+							ws_connection.close()
+					)
+					..on('close', !->
+						clearTimeout(timeout)
+					)
+				timeout	= setTimeout (!->
 					ws_connection.close()
 				), @_peer_connection_timeout
 			)
 	..close = !->
-		for peer, peer of @_peer_connections
+		# Closing all active WebRTC connections and stopping WebSocket server (if running)
+		@_all_peer_connections.forEach (peer) !->
 			peer.destroy()
 		if @ws_server
 			@ws_server.close()
@@ -139,6 +145,9 @@ webrtc-socket::
 									@send(buffer, offset, length, remote_peer_info.port, remote_peer_info.address, callback)
 									resolve(remote_peer_info)
 								)
+								..on('close', !->
+									clearTimeout(timeout)
+								)
 							ws_connection.onmessage = ({data}) !~>
 								try
 									signal	= bencode.decode(data)
@@ -147,7 +156,7 @@ webrtc-socket::
 								catch e
 									@emit('error', e)
 									ws_connection.close()
-							setTimeout (!~>
+							timeout = setTimeout (!~>
 								ws_connection.close()
 								delete @_pending_peer_connections["#address:#port"]
 								if !peer_connection.connected
@@ -162,11 +171,11 @@ webrtc-socket::
 	.._prepare_connection = (initiator) ->
 		debug('prepare connection, initiator: %s', initiator)
 		# We're creating some connections upfront, while they might not be ever used, so let's drop them after timeout
-		setTimeout (!~>
+		timeout			= setTimeout (!~>
 			if !peer_connection.connected || !peer_connection._tags.size
 				peer_connection.destroy()
 		), @_peer_connection_timeout
-		peer_connection = @_simple_peer_constructor(Object.assign({}, @_simple_peer_opts, {initiator}))
+		peer_connection	= @_simple_peer_constructor(Object.assign({}, @_simple_peer_opts, {initiator}))
 			..on('connect', !~>
 				debug('peer connected: %s:%d', peer_connection.remoteAddress, peer_connection.remotePort)
 				@_register_connection(peer_connection)
@@ -192,7 +201,7 @@ webrtc-socket::
 						if data_decoded.ws_server
 							# Peer says it has WebSockets server running, so we can connect to it later directly
 							peer_connection.ws_server = {
-								host	: data_decoded.ws_server.toString()
+								host	: data_decoded.ws_server.host.toString()
 								port	: data_decoded.ws_server.port
 							}
 							return
@@ -207,6 +216,10 @@ webrtc-socket::
 				debug('peer error: %o', &)
 				@emit('error', ...&)
 			)
+			..on('close', !~>
+				clearTimeout(timeout)
+				@_all_peer_connections.delete(peer_connection)
+			)
 			..setMaxListeners(0)
 			..signal = (signal) !~>
 				signal.sdp	= String(signal.sdp)
@@ -218,6 +231,8 @@ webrtc-socket::
 						@emit('extensions_received', peer_connection, signal.extensions)
 				@_simple_peer_constructor::signal.call(peer_connection, signal)
 			.._tags = new Set
+		@_all_peer_connections.add(peer_connection)
+		peer_connection
 	/**
 	 * @param {string}	id
 	 * @param {!Object}	peer_connection

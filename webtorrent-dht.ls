@@ -33,4 +33,3 @@ webtorrent-dht::
 			nodes	: @_rpc.socket.socket.known_ws_servers() # Hack: there is a nicer way to do this, but probably doesn't worth the effort
 			values	: bittorrent-dht::toJSON.call(@).values
 		}
-	# TODO: destroying DHT object should disconnect from any peers
