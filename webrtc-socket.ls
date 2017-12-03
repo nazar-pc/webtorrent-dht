@@ -103,7 +103,12 @@ webrtc-socket::
 			@_peer_connections["#address:#port"].send(buffer)
 			callback()
 		else if @_ws_connections_aliases["#address:#port"]
-			@_ws_connections_aliases["#address:#port"].send(buffer)
+			peer_connection	= @_ws_connections_aliases["#address:#port"]
+			@emit('update_websocket_request_peer', address, port, {
+				host	: peer_connection.remoteAddress
+				port	: peer_connection.remotePort
+			})
+			peer_connection.send(buffer)
 			callback()
 		else if @_pending_peer_connections["#address:#port"]
 			@_pending_peer_connections["#address:#port"]
@@ -142,7 +147,7 @@ webrtc-socket::
 									if peer_connection.destroyed
 										reject()
 										return
-									@send(buffer, offset, length, remote_peer_info.port, remote_peer_info.address, callback)
+									@send(buffer, offset, length, port, address, callback)
 									resolve(remote_peer_info)
 								)
 								..on('close', !->

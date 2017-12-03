@@ -76,6 +76,7 @@
    * @constructor
    */
   function kRpcSocketWebrtc(options){
+    var this$ = this;
     options == null && (options = {});
     if (!(this instanceof kRpcSocketWebrtc)) {
       return new kRpcSocketWebrtc(options);
@@ -94,6 +95,15 @@
       this.id = Buffer.from(options.id, 'hex');
     }
     options.socket = options.socket || webrtcSocket(options);
+    options.socket.on('update_websocket_request_peer', function(host, port, peer){
+      var i$, ref$, len$, request;
+      for (i$ = 0, len$ = (ref$ = this$._reqs).length; i$ < len$; ++i$) {
+        request = ref$[i$];
+        if (request.peer.host === host && request.peer.port === port) {
+          request.peer = peer;
+        }
+      }
+    });
     options.isIP = isIP;
     this._id_length = options.id.length;
     this._info_length = this._id_length + 6;

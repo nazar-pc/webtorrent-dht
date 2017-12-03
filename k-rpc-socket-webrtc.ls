@@ -72,6 +72,11 @@ function encode_info (ip, port)
 	else
 		@id	= Buffer.from(options.id, 'hex')
 	options.socket	= options.socket || webrtc-socket(options)
+	options.socket.on('update_websocket_request_peer', (host, port, peer) !~>
+		for request in @_reqs
+			if request.peer.host == host && request.peer.port == port
+				request.peer	= peer
+	)
 	options.isIP	= isIP
 	@_id_length		= options.id.length
 	@_info_length	= @_id_length + 6

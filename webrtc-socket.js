@@ -121,12 +121,17 @@
     }
   };
   x$.send = function(buffer, offset, length, port, address, callback){
-    var this$ = this;
+    var peer_connection, this$ = this;
     if (this._peer_connections[address + ":" + port]) {
       this._peer_connections[address + ":" + port].send(buffer);
       callback();
     } else if (this._ws_connections_aliases[address + ":" + port]) {
-      this._ws_connections_aliases[address + ":" + port].send(buffer);
+      peer_connection = this._ws_connections_aliases[address + ":" + port];
+      this.emit('update_websocket_request_peer', address, port, {
+        host: peer_connection.remoteAddress,
+        port: peer_connection.remotePort
+      });
+      peer_connection.send(buffer);
       callback();
     } else if (this._pending_peer_connections[address + ":" + port]) {
       this._pending_peer_connections[address + ":" + port].then(function(peer){
@@ -169,7 +174,7 @@
                 reject();
                 return;
               }
-              this$.send(buffer, offset, length, remote_peer_info.port, remote_peer_info.address, callback);
+              this$.send(buffer, offset, length, port, address, callback);
               resolve(remote_peer_info);
             });
             x$.on('close', function(){
