@@ -128,12 +128,12 @@
       }
       if (response.nodes) {
         if (response.nodes.length / this._info_length > signals.length) {
-          response.nodes.length = signals.length * this._info_length;
+          response.nodes = response.nodes.slice(0, signals.length * this._info_length);
         }
         peers = parse_nodes(response.nodes, this._id_length);
       } else if (response.values) {
         if (response.values.length > signals.length) {
-          response.values.length = signals.length;
+          response.values = response.values(0, signals.length);
         }
         peers = response.values.map(parse_info);
       } else {

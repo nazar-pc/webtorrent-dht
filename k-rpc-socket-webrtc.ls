@@ -102,11 +102,11 @@ k-rpc-socket-webrtc::
 				# We might get less signals than needed (different K, issues during WebRTC offer generation), so let's limit similarly number of nodes or values
 				if response.nodes
 					if response.nodes.length / @_info_length > signals.length
-						response.nodes.length = signals.length * @_info_length
+						response.nodes = response.nodes.slice(0, signals.length * @_info_length)
 					peers = parse_nodes(response.nodes, @_id_length)
 				else if response.values
 					if response.values.length > signals.length
-						response.values.length = signals.length
+						response.values = response.values(0, signals.length)
 					peers = response.values.map(parse_info)
 				else
 					k-rpc-socket::response.call(@, peer, query, response, callback)
