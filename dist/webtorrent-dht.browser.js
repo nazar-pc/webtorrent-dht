@@ -11562,7 +11562,7 @@ exports.RTCSessionDescription = RTCSessionDescription;
       return;
     }
     peer_connection = this._connections_id_mapping[id];
-    if (peer_connection._tags.size) {
+    if (peer_connection._tags.size && !peer_connection.destroyed) {
       return;
     }
     delete this._connections_id_mapping[id];

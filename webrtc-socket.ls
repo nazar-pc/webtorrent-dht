@@ -267,7 +267,7 @@ webrtc-socket::
 		if !@_connections_id_mapping[id]
 			return
 		peer_connection	= @_connections_id_mapping[id]
-		if peer_connection._tags.size
+		if peer_connection._tags.size && !peer_connection.destroyed
 			# Do not disconnect while there are still some tags
 			return
 		delete @_connections_id_mapping[id]
