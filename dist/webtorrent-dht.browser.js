@@ -101,7 +101,7 @@
       var i$, ref$, len$, request;
       for (i$ = 0, len$ = (ref$ = this$._reqs).length; i$ < len$; ++i$) {
         request = ref$[i$];
-        if (request.peer.host === host && request.peer.port === port) {
+        if (request && request.peer.host === host && request.peer.port === port) {
           request.peer = peer;
         }
       }
