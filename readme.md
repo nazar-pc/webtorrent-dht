@@ -92,4 +92,6 @@ There are also a few events exposed by `webrtc-socket`:
 Feel free to create issues and send pull requests (for big changes create an issue first and link it from the PR), they are highly appreciated!
 
 ## License
-MIT, see license.txt
+Free Public License 1.0.0 / Zero Clause BSD License
+https://opensource.org/licenses/FPL-1.0.0
+https://tldrlegal.com/license/bsd-0-clause-license

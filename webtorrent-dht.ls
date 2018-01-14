@@ -1,8 +1,7 @@
 /**
- * @package   WebTorrent DHT
- * @author    Nazar Mokrynskyi <nazar@mokrynskyi.com>
- * @copyright Copyright (c) 2017, Nazar Mokrynskyi
- * @license   MIT License, see license.txt
+ * @package WebTorrent DHT
+ * @author  Nazar Mokrynskyi <nazar@mokrynskyi.com>
+ * @license 0BSD
  */
 bittorrent-dht	= require('bittorrent-dht')
 inherits		= require('inherits')
