@@ -93,5 +93,7 @@ Feel free to create issues and send pull requests (for big changes create an iss
 
 ## License
 Free Public License 1.0.0 / Zero Clause BSD License
+
 https://opensource.org/licenses/FPL-1.0.0
+
 https://tldrlegal.com/license/bsd-0-clause-license
