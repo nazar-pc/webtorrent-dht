@@ -22,14 +22,14 @@
 	],
 	"dependencies"    : {
 		"bencode"        : "^1.0.0",
-		"bittorrent-dht" : "^7.10.0",
+		"bittorrent-dht" : "^8.0.1",
 		"debug"          : "^3.1.0",
 		"inherits"       : "^2.0.3",
 		"isipaddress"    : "0.0.2",
 		"k-rpc"          : "^4.2.1",
 		"k-rpc-socket"   : "^1.7.2",
 		"randombytes"    : "^2.0.6",
-		"simple-peer"    : "^8.2.0",
+		"simple-peer"    : "^8.5.0",
 		"wrtc"           : "0.0.66",
 		"ws"             : "^4.0.0"
 	},
