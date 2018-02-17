@@ -258,10 +258,19 @@
         } catch (e$) {}
       }
       if (Buffer.isBuffer(data)) {
-        this$.emit('message', data, {
-          address: peer_connection.remoteAddress,
-          port: peer_connection.remotePort
-        });
+        if (peer_connection.connected) {
+          this$.emit('message', data, {
+            address: peer_connection.remoteAddress,
+            port: peer_connection.remotePort
+          });
+        } else {
+          peer_connection.once('connected', function(){
+            this$.emit('message', data, {
+              address: peer_connection.remoteAddress,
+              port: peer_connection.remotePort
+            });
+          });
+        }
       }
     });
     x$.on('error', function(){

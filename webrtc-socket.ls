@@ -211,10 +211,19 @@ webrtc-socket::
 							return
 				# Only `Buffer` format is used for DHT
 				if Buffer.isBuffer(data)
-					@emit('message', data, {
-						address	: peer_connection.remoteAddress
-						port	: peer_connection.remotePort
-					})
+					# Peer might be not yet marked as connected, be prepared for this and wait for remote peer info to become available
+					if peer_connection.connected
+						@emit('message', data, {
+							address	: peer_connection.remoteAddress
+							port	: peer_connection.remotePort
+						})
+					else
+						peer_connection.once('connected', !~>
+							@emit('message', data, {
+								address	: peer_connection.remoteAddress
+								port	: peer_connection.remotePort
+							})
+						)
 			)
 			..on('error', !~>
 				debug('peer error: %o', &)
