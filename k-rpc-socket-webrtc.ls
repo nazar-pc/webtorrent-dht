@@ -133,7 +133,6 @@ k-rpc-socket-webrtc::
 							else
 								replies[i].response.r?.signal || null
 					k-rpc-socket::response.call(@, peer, query, response, callback)
-				break
 			else
 				k-rpc-socket::response.call(@, peer, query, response, callback)
 	..query = (peer, query, callback) !->
@@ -145,14 +144,14 @@ k-rpc-socket-webrtc::
 					for i from 0 til @_k
 						new Promise (resolve) !~>
 							peer_connection = @socket._prepare_connection(true)
-								..on('signal', (signal) !~>
+								..once('signal', (signal) !~>
 									# Append node id, it is used to avoid creating unnecessary connections
 									signal.id			= @id
 									# Append any supplied extensions
 									signal.extensions	= @_extensions
 									resolve({peer_connection, signal})
 								)
-								..on('error', (error) !~>
+								..once('error', (error) !~>
 									resolve(null)
 								)
 				).then (connections) !~>
@@ -197,7 +196,7 @@ k-rpc-socket-webrtc::
 										else
 											new Promise (resolve) !~>
 												peer_connection	= peer_connections[i]
-													..on('connect', !~>
+													..once('connect', !~>
 														@socket._add_id_mapping(signal_id_hex, peer_connection)
 														if response.r.nodes
 															resolve(encode_node(
@@ -211,7 +210,7 @@ k-rpc-socket-webrtc::
 																peer_connection.remotePort
 															))
 													)
-													..on('error', !->
+													..once('error', !->
 														resolve(null)
 													)
 													..signal(signal)
@@ -225,7 +224,6 @@ k-rpc-socket-webrtc::
 								response.r.values	= peers
 							callback(error, response, ...args)
 					)
-				break
 			else
 				k-rpc-socket::query.call(@, peer, query, callback)
 	..emit = (event, ...args) ->
@@ -247,26 +245,34 @@ k-rpc-socket-webrtc::
 									signal	: {@id}
 								})
 							else
+								done	= false
 								peer_connection = @socket._prepare_connection(false)
-									..on('connect', !~>
+									..once('connect', !~>
 										@socket._add_id_mapping(signal_id_hex, peer_connection)
 									)
-									..on('signal', (signal) !~>
+									..once('signal', (signal) !~>
+										# Make sure either response or error is sent, not both
+										if done
+											return
+										done := true
 										# Append node id, it is used to avoid creating unnecessary connections
 										signal.id			= @id
 										# Append any supplied extensions
 										signal.extensions	= @_extensions
 										@response(peer, message, {@id, signal})
 									)
-									..on('error', (error) !~>
+									..once('error', (error) !~>
+										# Make sure either response or error is sent, not both
+										if done
+											return
+										done := true
 										@error(peer, message, [201, error])
 									)
 									..signal(signal)
-						break
-				break
+						# Don't fire `query` here, we've processed it already
+						return
 			case 'response'
 				[message, peer]	= args
 				if message.r?.id
 					@socket._add_id_mapping(message.r.id.toString('hex'), peer)
-				break
 		k-rpc-socket::emit.apply(@, &)

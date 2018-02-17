@@ -212,7 +212,7 @@
         function fn$(resolve){
           var x$, peer_connection;
           x$ = peer_connection = this$.socket._prepare_connection(true);
-          x$.on('signal', function(signal){
+          x$.once('signal', function(signal){
             signal.id = this$.id;
             signal.extensions = this$._extensions;
             resolve({
@@ -220,7 +220,7 @@
               signal: signal
             });
           });
-          x$.on('error', function(error){
+          x$.once('error', function(error){
             resolve(null);
           });
         }
@@ -276,7 +276,7 @@
                     return new Promise(function(resolve){
                       var x$, peer_connection;
                       x$ = peer_connection = peer_connections[i];
-                      x$.on('connect', function(){
+                      x$.once('connect', function(){
                         this$.socket._add_id_mapping(signal_id_hex, peer_connection);
                         if (response.r.nodes) {
                           resolve(encode_node(response.r.nodes.slice(i * this$._info_length, i * this$._info_length + this$._id_length), peer_connection.remoteAddress, peer_connection.remotePort));
@@ -284,7 +284,7 @@
                           resolve(encode_info(peer_connection.remoteAddress, peer_connection.remotePort));
                         }
                       });
-                      x$.on('error', function(){
+                      x$.once('error', function(){
                         resolve(null);
                       });
                       x$.signal(signal);
@@ -312,7 +312,7 @@
     }
   };
   x$.emit = function(event){
-    var args, res$, i$, to$, message, peer, ref$, ref1$, ref2$, signal, signal_id_hex, x$, peer_connection, ref3$, this$ = this;
+    var args, res$, i$, to$, message, peer, ref$, ref1$, ref2$, signal, signal_id_hex, done, x$, peer_connection, ref3$, this$ = this;
     res$ = [];
     for (i$ = 1, to$ = arguments.length; i$ < to$; ++i$) {
       res$.push(arguments[i$]);
@@ -337,11 +337,16 @@
               }
             });
           } else {
+            done = false;
             x$ = peer_connection = this.socket._prepare_connection(false);
-            x$.on('connect', function(){
+            x$.once('connect', function(){
               this$.socket._add_id_mapping(signal_id_hex, peer_connection);
             });
-            x$.on('signal', function(signal){
+            x$.once('signal', function(signal){
+              if (done) {
+                return;
+              }
+              done = true;
               signal.id = this$.id;
               signal.extensions = this$._extensions;
               this$.response(peer, message, {
@@ -349,13 +354,17 @@
                 signal: signal
               });
             });
-            x$.on('error', function(error){
+            x$.once('error', function(error){
+              if (done) {
+                return;
+              }
+              done = true;
               this$.error(peer, message, [201, error]);
             });
             x$.signal(signal);
           }
         }
-        break;
+        return;
       }
       break;
     case 'response':
@@ -363,7 +372,6 @@
       if ((ref3$ = message.r) != null && ref3$.id) {
         this.socket._add_id_mapping(message.r.id.toString('hex'), peer);
       }
-      break;
     }
     return kRpcSocket.prototype.emit.apply(this, arguments);
   };

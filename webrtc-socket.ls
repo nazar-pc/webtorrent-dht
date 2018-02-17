@@ -50,7 +50,7 @@ webrtc-socket::
 		if !port || !address || port instanceof Function || address instanceof Function
 			throw 'Both address and port are required for listen call'
 		@ws_server = new ws.Server({port})
-			..on('listening', !~>
+			..once('listening', !~>
 				debug('listening for WebSocket connections on %s:%d', address, port)
 				if !@_ws_address
 					@_ws_address = {address, port}
@@ -63,19 +63,19 @@ webrtc-socket::
 			..on('connection', (ws_connection) !~>
 				debug('accepted WS connection')
 				peer_connection = @_prepare_connection(true)
-					..on('signal', (signal) !~>
+					..once('signal', (signal) !~>
 						debug('got signal for WS (server): %s', signal)
 						# Append any supplied extensions
 						signal.extensions	= @_extensions
 						signal				= bencode.encode(signal)
 						ws_connection.send(signal)
 					)
-					..on('connect', !~>
+					..once('connect', !~>
 						if ws_connection.readyState == 1 # OPEN
 							ws_connection.close()
 					)
 				ws_connection
-					..on('message', (data) !~>
+					..once('message', (data) !~>
 						try
 							signal	= bencode.decode(data)
 							debug('got signal message from WS (server): %s', signal)
@@ -84,7 +84,7 @@ webrtc-socket::
 							@emit('error', e)
 							ws_connection.close()
 					)
-					..on('close', !->
+					..once('close', !->
 						clearTimeout(timeout)
 					)
 				timeout	= setTimeout (!->
@@ -128,14 +128,14 @@ webrtc-socket::
 						..onopen = !~>
 							debug('opened WS connection')
 							peer_connection = @_prepare_connection(false)
-								..on('signal', (signal) !~>
+								..once('signal', (signal) !~>
 									debug('got signal for WS (client): %s', signal)
 									# Append any supplied extensions
 									signal.extensions	= @_extensions
 									signal				= bencode.encode(signal)
 									ws_connection.send(signal)
 								)
-								..on('connect', !~>
+								..once('connect', !~>
 									if ws_connection.readyState == 1 # OPEN
 										ws_connection.close()
 									remote_peer_info	=
@@ -149,7 +149,7 @@ webrtc-socket::
 									@send(buffer, offset, length, port, address, callback)
 									resolve(remote_peer_info)
 								)
-								..on('close', !->
+								..once('close', !->
 									clearTimeout(timeout)
 								)
 							ws_connection.onmessage = ({data}) !~>
@@ -180,7 +180,7 @@ webrtc-socket::
 				peer_connection.destroy()
 		), @_peer_connection_timeout
 		peer_connection	= @_simple_peer_constructor(Object.assign({}, @_simple_peer_opts, {initiator}))
-			..on('connect', !~>
+			..once('connect', !~>
 				debug('peer connected: %s:%d', peer_connection.remoteAddress, peer_connection.remotePort)
 				@_register_connection(peer_connection)
 				if @ws_server
@@ -191,7 +191,7 @@ webrtc-socket::
 							port	: address.port
 					)
 					@send(Buffer.from(data), 0, data.length, peer_connection.remotePort, peer_connection.remoteAddress, ->)
-				peer_connection.on('close', !~>
+				peer_connection.once('close', !~>
 					debug('peer disconnected: %s:%d', peer_connection.remoteAddress, peer_connection.remotePort)
 				)
 			)
@@ -229,7 +229,7 @@ webrtc-socket::
 				debug('peer error: %o', &)
 				@emit('error', ...&)
 			)
-			..on('close', !~>
+			..once('close', !~>
 				clearTimeout(timeout)
 				@_all_peer_connections.delete(peer_connection)
 			)
@@ -264,7 +264,7 @@ webrtc-socket::
 			return
 		@_connections_id_mapping[id]	= peer_connection
 		peer_connection.id				= id
-		peer_connection.on('close', !~>
+		peer_connection.once('close', !~>
 			@_del_id_mapping(id)
 		)
 		@emit('node_connected', id)
@@ -320,13 +320,13 @@ webrtc-socket::
 		ip								= peer_connection.remoteAddress
 		port							= peer_connection.remotePort
 		@_peer_connections["#ip:#port"]	= peer_connection
-		peer_connection.on('close', !~>
+		peer_connection.once('close', !~>
 			delete @_peer_connections["#ip:#port"]
 		)
 	.._register_ws_connection_alias = (webrtc_host, webrtc_port, websocket_host, websocket_port) !->
 		peer_connection												= @_peer_connections["#webrtc_host:#webrtc_port"]
 		@_ws_connections_aliases["#websocket_host:#websocket_port"]	= peer_connection
-		peer_connection.on('close', !~>
+		peer_connection.once('close', !~>
 			delete @_ws_connections_aliases["#websocket_host:#websocket_port"]
 		)
 		@emit('websocket_peer_connection_alias', websocket_host, websocket_port, peer_connection)

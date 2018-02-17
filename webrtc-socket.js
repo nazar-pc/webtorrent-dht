@@ -59,7 +59,7 @@
     x$ = this.ws_server = new ws.Server({
       port: port
     });
-    x$.on('listening', function(){
+    x$.once('listening', function(){
       debug('listening for WebSocket connections on %s:%d', address, port);
       if (!this$._ws_address) {
         this$._ws_address = {
@@ -79,19 +79,19 @@
       var x$, peer_connection, y$, timeout;
       debug('accepted WS connection');
       x$ = peer_connection = this$._prepare_connection(true);
-      x$.on('signal', function(signal){
+      x$.once('signal', function(signal){
         debug('got signal for WS (server): %s', signal);
         signal.extensions = this$._extensions;
         signal = bencode.encode(signal);
         ws_connection.send(signal);
       });
-      x$.on('connect', function(){
+      x$.once('connect', function(){
         if (ws_connection.readyState === 1) {
           ws_connection.close();
         }
       });
       y$ = ws_connection;
-      y$.on('message', function(data){
+      y$.once('message', function(data){
         var signal, e;
         try {
           signal = bencode.decode(data);
@@ -103,7 +103,7 @@
           ws_connection.close();
         }
       });
-      y$.on('close', function(){
+      y$.once('close', function(){
         clearTimeout(timeout);
       });
       timeout = setTimeout(function(){
@@ -153,13 +153,13 @@
             var x$, peer_connection, timeout;
             debug('opened WS connection');
             x$ = peer_connection = this$._prepare_connection(false);
-            x$.on('signal', function(signal){
+            x$.once('signal', function(signal){
               debug('got signal for WS (client): %s', signal);
               signal.extensions = this$._extensions;
               signal = bencode.encode(signal);
               ws_connection.send(signal);
             });
-            x$.on('connect', function(){
+            x$.once('connect', function(){
               var remote_peer_info;
               if (ws_connection.readyState === 1) {
                 ws_connection.close();
@@ -176,7 +176,7 @@
               this$.send(buffer, offset, length, port, address, callback);
               resolve(remote_peer_info);
             });
-            x$.on('close', function(){
+            x$.once('close', function(){
               clearTimeout(timeout);
             });
             ws_connection.onmessage = function(arg$){
@@ -221,7 +221,7 @@
     x$ = peer_connection = this._simple_peer_constructor(Object.assign({}, this._simple_peer_opts, {
       initiator: initiator
     }));
-    x$.on('connect', function(){
+    x$.once('connect', function(){
       var address, data;
       debug('peer connected: %s:%d', peer_connection.remoteAddress, peer_connection.remotePort);
       this$._register_connection(peer_connection);
@@ -235,7 +235,7 @@
         });
         this$.send(Buffer.from(data), 0, data.length, peer_connection.remotePort, peer_connection.remoteAddress, function(){});
       }
-      peer_connection.on('close', function(){
+      peer_connection.once('close', function(){
         debug('peer disconnected: %s:%d', peer_connection.remoteAddress, peer_connection.remotePort);
       });
     });
@@ -277,7 +277,7 @@
       debug('peer error: %o', arguments);
       this$.emit.apply(this$, ['error'].concat(slice$.call(arguments)));
     });
-    x$.on('close', function(){
+    x$.once('close', function(){
       clearTimeout(timeout);
       this$._all_peer_connections['delete'](peer_connection);
     });
@@ -325,7 +325,7 @@
     }
     this._connections_id_mapping[id] = peer_connection;
     peer_connection.id = id;
-    peer_connection.on('close', function(){
+    peer_connection.once('close', function(){
       this$._del_id_mapping(id);
     });
     this.emit('node_connected', id);
@@ -399,7 +399,7 @@
     ip = peer_connection.remoteAddress;
     port = peer_connection.remotePort;
     this._peer_connections[ip + ":" + port] = peer_connection;
-    peer_connection.on('close', function(){
+    peer_connection.once('close', function(){
       delete this$._peer_connections[ip + ":" + port];
     });
   };
@@ -407,7 +407,7 @@
     var peer_connection, this$ = this;
     peer_connection = this._peer_connections[webrtc_host + ":" + webrtc_port];
     this._ws_connections_aliases[websocket_host + ":" + websocket_port] = peer_connection;
-    peer_connection.on('close', function(){
+    peer_connection.once('close', function(){
       delete this$._ws_connections_aliases[websocket_host + ":" + websocket_port];
     });
     this.emit('websocket_peer_connection_alias', websocket_host, websocket_port, peer_connection);
