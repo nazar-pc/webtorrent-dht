@@ -247,7 +247,8 @@
           }
           args = res$;
           if (!(!error && Array.isArray(response.r.signals))) {
-            return callback.apply(null, [error, response].concat(slice$.call(args)));
+            callback.apply(null, [error, response].concat(slice$.call(args)));
+            return;
           }
           /**
            * Use signal data from response to establish connections to target nodes and re-pack nodes using address and port from
@@ -272,10 +273,17 @@
                   if (peer_connection) {
                     peer_connections[i].destroy();
                     return encode_info(peer_connection.remoteAddress, peer_connection.remotePort);
+                  } else if (!response.r.nodes && !response.r.values) {
+                    return null;
                   } else {
                     return new Promise(function(resolve){
-                      var x$, peer_connection;
-                      x$ = peer_connection = peer_connections[i];
+                      var peer_connection, x$;
+                      peer_connection = peer_connections[i];
+                      if (peer_connection.destroyed) {
+                        resolve(null);
+                        return;
+                      }
+                      x$ = peer_connection;
                       x$.once('connect', function(){
                         this$.socket._add_id_mapping(signal_id_hex, peer_connection);
                         if (response.r.nodes) {
@@ -284,7 +292,7 @@
                           resolve(encode_info(peer_connection.remoteAddress, peer_connection.remotePort));
                         }
                       });
-                      x$.once('error', function(){
+                      x$.once('close', function(){
                         resolve(null);
                       });
                       x$.signal(signal);
@@ -354,7 +362,7 @@
                 signal: signal
               });
             });
-            x$.once('error', function(error){
+            x$.once('close', function(error){
               if (done) {
                 return;
               }

@@ -171,7 +171,8 @@ k-rpc-socket-webrtc::
 							!error &&
 							Array.isArray(response.r.signals)
 						)
-							return callback(error, response, ...args)
+							callback(error, response, ...args)
+							return
 						/**
 						 * Use signal data from response to establish connections to target nodes and re-pack nodes using address and port from
 						 * newly established connection rather than what queried node gave us (also not all connections might be established, so
@@ -193,9 +194,16 @@ k-rpc-socket-webrtc::
 												peer_connection.remoteAddress
 												peer_connection.remotePort
 											)
+										else if !response.r.nodes && !response.r.values
+											null
 										else
 											new Promise (resolve) !~>
 												peer_connection	= peer_connections[i]
+												# In case peer connection have been closed already
+												if peer_connection.destroyed
+													resolve(null)
+													return
+												peer_connection
 													..once('connect', !~>
 														@socket._add_id_mapping(signal_id_hex, peer_connection)
 														if response.r.nodes
@@ -210,7 +218,7 @@ k-rpc-socket-webrtc::
 																peer_connection.remotePort
 															))
 													)
-													..once('error', !->
+													..once('close', !->
 														resolve(null)
 													)
 													..signal(signal)
@@ -261,7 +269,7 @@ k-rpc-socket-webrtc::
 										signal.extensions	= @_extensions
 										@response(peer, message, {@id, signal})
 									)
-									..once('error', (error) !~>
+									..once('close', (error) !~>
 										# Make sure either response or error is sent, not both
 										if done
 											return
