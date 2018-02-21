@@ -34,9 +34,9 @@
     this._simple_peer_constructor = options.simple_peer_constructor || simplePeer;
     this._ws_address = options.ws_address;
     this._extensions = options.extensions || [];
-    this._listeners = [];
     this._peer_connections = {};
     this._all_peer_connections = new Set;
+    this._all_ws_connections = new Set;
     this._ws_connections_aliases = {};
     this._pending_peer_connections = {};
     this._connections_id_mapping = {};
@@ -115,6 +115,9 @@
     this._all_peer_connections.forEach(function(peer){
       peer.destroy();
     });
+    this._all_ws_connections.forEach(function(ws_connection){
+      ws_connection.close();
+    });
     if (this.ws_server) {
       this.ws_server.close();
     }
@@ -148,6 +151,7 @@
           };
           x$.onclose = function(){
             debug('closed WS connection');
+            this$._all_ws_connections['delete'](ws_connection);
           };
           x$.onopen = function(){
             var x$, peer_connection, timeout;
@@ -200,6 +204,7 @@
               }
             }, this$._peer_connection_timeout);
           };
+          this._all_ws_connections.add(ws_connection);
         }.call(this$, typeof WebSocket !== 'undefined' ? WebSocket : ws));
       });
       this._pending_peer_connections[address + ":" + port]['catch'](function(){});

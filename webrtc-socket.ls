@@ -29,9 +29,9 @@ SIMPLE_PEER_OPTS		= {
 	@_simple_peer_constructor	= options.simple_peer_constructor || simple-peer
 	@_ws_address				= options.ws_address
 	@_extensions				= options.extensions || []
-	@_listeners					= []
 	@_peer_connections			= {}
 	@_all_peer_connections		= new Set
+	@_all_ws_connections		= new Set
 	@_ws_connections_aliases	= {}
 	@_pending_peer_connections	= {}
 	@_connections_id_mapping	= {}
@@ -95,6 +95,8 @@ webrtc-socket::
 		# Closing all active WebRTC connections and stopping WebSocket server (if running)
 		@_all_peer_connections.forEach (peer) !->
 			peer.destroy()
+		@_all_ws_connections.forEach (ws_connection) !->
+			ws_connection.close()
 		if @ws_server
 			@ws_server.close()
 	..send = (buffer, offset, length, port, address, callback) !->
@@ -125,6 +127,7 @@ webrtc-socket::
 							@emit('error', e)
 						..onclose = !~>
 							debug('closed WS connection')
+							@_all_ws_connections.delete(ws_connection)
 						..onopen = !~>
 							debug('opened WS connection')
 							peer_connection = @_prepare_connection(false)
@@ -166,6 +169,7 @@ webrtc-socket::
 								if !peer_connection.connected
 									reject()
 							), @_peer_connection_timeout
+					@_all_ws_connections.add(ws_connection)
 			@_pending_peer_connections["#address:#port"].catch(->)
 	/**
 	 * @param {boolean} initiator
