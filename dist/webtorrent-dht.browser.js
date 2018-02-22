@@ -265,16 +265,25 @@
             }
             return results$;
             function fn$(i, signal){
-              var signal_id_hex, peer_connection, this$ = this;
+              var signal_id_hex, peer_connection, result, this$ = this;
               if (signal) {
                 signal_id_hex = signal.id.toString('hex');
                 if (signal_id_hex === host_id) {
                   return null;
                 } else {
                   peer_connection = this.socket.get_id_mapping(signal_id_hex);
+                  result = function(peer_connection_real){
+                    if (response.r.nodes) {
+                      encode_node(response.r.nodes.slice(i * this._info_length, i * this._info_length + this._id_length), peer_connection_real.remoteAddress, peer_connection_real.remotePort);
+                    } else if (response.r.values) {
+                      encode_info(peer_connection_real.remoteAddress, peer_connection_real.remotePort);
+                    } else {
+                      null;
+                    }
+                  };
                   if (peer_connection) {
                     peer_connections[i].destroy();
-                    return encode_info(peer_connection.remoteAddress, peer_connection.remotePort);
+                    return result(peer_connection);
                   } else if (!response.r.nodes && !response.r.values) {
                     return null;
                   } else {
@@ -288,14 +297,22 @@
                       x$ = peer_connection;
                       x$.once('connect', function(){
                         this$.socket._add_id_mapping(signal_id_hex, peer_connection);
-                        if (response.r.nodes) {
-                          resolve(encode_node(response.r.nodes.slice(i * this$._info_length, i * this$._info_length + this$._id_length), peer_connection.remoteAddress, peer_connection.remotePort));
-                        } else if (response.r.values) {
-                          resolve(encode_info(peer_connection.remoteAddress, peer_connection.remotePort));
+                        /**
+                         * Above line might cause connection to close as everything is asynchronous and connection might
+                         * be established in the time frame between signal insertion and `connect` event firing
+                         */
+                        if (!peer_connection.destroyed) {
+                          resolve(result(peer_connection));
                         }
                       });
                       x$.once('close', function(){
-                        resolve(null);
+                        var peer_connection_real;
+                        peer_connection_real = this$.socket.get_id_mapping(signal_id_hex);
+                        if (peer_connection_real) {
+                          resolve(result(peer_connection_real));
+                        } else {
+                          resolve(null);
+                        }
                       });
                       x$.signal(signal);
                     });
@@ -364,7 +381,7 @@
                 signal: signal
               });
             });
-            x$.once('close', function(error){
+            x$.once('error', function(error){
               if (done) {
                 return;
               }
