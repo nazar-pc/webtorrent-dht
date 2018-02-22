@@ -269,12 +269,12 @@ k-rpc-socket-webrtc::
 										signal.extensions	= @_extensions
 										@response(peer, message, {@id, signal})
 									)
-									..once('close', (error) !~>
+									..once('close' !~>
 										# Make sure either response or error is sent, not both
 										if done
 											return
 										done := true
-										@error(peer, message, [201, error])
+										@error(peer, message, [201])
 									)
 									..signal(signal)
 						# Don't fire `query` here, we've processed it already

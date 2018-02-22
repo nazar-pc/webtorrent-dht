@@ -362,12 +362,12 @@
                 signal: signal
               });
             });
-            x$.once('close', function(error){
+            x$.once('close', function(){
               if (done) {
                 return;
               }
               done = true;
-              this$.error(peer, message, [201, error]);
+              this$.error(peer, message, [201]);
             });
             x$.signal(signal);
           }
