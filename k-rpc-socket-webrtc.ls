@@ -188,12 +188,23 @@ k-rpc-socket-webrtc::
 										null
 									else
 										peer_connection = @socket.get_id_mapping(signal_id_hex)
+										result			= (peer_connection_real) !->
+											if response.r.nodes
+												encode_node(
+													response.r.nodes.slice(i * @_info_length, i * @_info_length + @_id_length)
+													peer_connection_real.remoteAddress
+													peer_connection_real.remotePort
+												)
+											else if response.r.values
+												encode_info(
+													peer_connection_real.remoteAddress
+													peer_connection_real.remotePort
+												)
+											else
+												null
 										if peer_connection
 											peer_connections[i].destroy()
-											encode_info(
-												peer_connection.remoteAddress
-												peer_connection.remotePort
-											)
+											result(peer_connection)
 										else if !response.r.nodes && !response.r.values
 											null
 										else
@@ -206,20 +217,20 @@ k-rpc-socket-webrtc::
 												peer_connection
 													..once('connect', !~>
 														@socket._add_id_mapping(signal_id_hex, peer_connection)
-														if response.r.nodes
-															resolve(encode_node(
-																response.r.nodes.slice(i * @_info_length, i * @_info_length + @_id_length)
-																peer_connection.remoteAddress
-																peer_connection.remotePort
-															))
-														else if response.r.values
-															resolve(encode_info(
-																peer_connection.remoteAddress
-																peer_connection.remotePort
-															))
+														/**
+														 * Above line might cause connection to close as everything is asynchronous and connection might
+														 * be established in the time frame between signal insertion and `connect` event firing
+														 */
+														if !peer_connection.destroyed
+															resolve(result(peer_connection))
 													)
-													..once('close', !->
-														resolve(null)
+													..once('close', !~>
+														peer_connection_real	= @socket.get_id_mapping(signal_id_hex)
+														# Connection is closed, but we might still have existing connection to interested node
+														if peer_connection_real
+															resolve(result(peer_connection_real))
+														else
+															resolve(null)
 													)
 													..signal(signal)
 								else
@@ -269,12 +280,12 @@ k-rpc-socket-webrtc::
 										signal.extensions	= @_extensions
 										@response(peer, message, {@id, signal})
 									)
-									..once('close' !~>
+									..once('error' (error) !~>
 										# Make sure either response or error is sent, not both
 										if done
 											return
 										done := true
-										@error(peer, message, [201])
+										@error(peer, message, [201, error])
 									)
 									..signal(signal)
 						# Don't fire `query` here, we've processed it already
