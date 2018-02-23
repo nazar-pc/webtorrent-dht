@@ -272,11 +272,11 @@
                   peer_connection = this.socket.get_id_mapping(signal_id_hex);
                   result = function(peer_connection_real){
                     if (response.r.nodes) {
-                      encode_node(response.r.nodes.slice(i * this._info_length, i * this._info_length + this._id_length), peer_connection_real.remoteAddress, peer_connection_real.remotePort);
+                      return encode_node(response.r.nodes.slice(i * this$._info_length, i * this$._info_length + this$._id_length), peer_connection_real.remoteAddress, peer_connection_real.remotePort);
                     } else if (response.r.values) {
-                      encode_info(peer_connection_real.remoteAddress, peer_connection_real.remotePort);
+                      return encode_info(peer_connection_real.remoteAddress, peer_connection_real.remotePort);
                     } else {
-                      null;
+                      return null;
                     }
                   };
                   if (peer_connection) {

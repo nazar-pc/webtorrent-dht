@@ -188,7 +188,7 @@ k-rpc-socket-webrtc::
 										null
 									else
 										peer_connection = @socket.get_id_mapping(signal_id_hex)
-										result			= (peer_connection_real) !->
+										result			= (peer_connection_real) ~>
 											if response.r.nodes
 												encode_node(
 													response.r.nodes.slice(i * @_info_length, i * @_info_length + @_id_length)
