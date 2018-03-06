@@ -213,6 +213,8 @@ webrtc-socket::
 								port	: data_decoded.ws_server.port
 							}
 							return
+				if data instanceof Uint8Array
+					data = Buffer.from(data)
 				# Only `Buffer` format is used for DHT
 				if Buffer.isBuffer(data)
 					# Peer might be not yet marked as connected, be prepared for this and wait for remote peer info to become available

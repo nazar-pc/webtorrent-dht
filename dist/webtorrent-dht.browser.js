@@ -11724,6 +11724,9 @@ exports.RTCSessionDescription = window.mozRTCSessionDescription || window.webkit
           }
         } catch (e$) {}
       }
+      if (data instanceof Uint8Array) {
+        data = Buffer.from(data);
+      }
       if (Buffer.isBuffer(data)) {
         if (peer_connection.connected) {
           this$.emit('message', data, {
