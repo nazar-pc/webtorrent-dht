@@ -178,11 +178,6 @@ webrtc-socket::
 	 */
 	.._prepare_connection = (initiator) ->
 		debug('prepare connection, initiator: %s', initiator)
-		# We're creating some connections upfront, while they might not be ever used, so let's drop them after timeout
-		timeout			= setTimeout (!~>
-			if !peer_connection.connected || !peer_connection._tags.size
-				peer_connection.destroy()
-		), @_peer_connection_timeout
 		peer_connection	= @_simple_peer_constructor(Object.assign({}, @_simple_peer_opts, {initiator}))
 			..once('connect', !~>
 				debug('peer connected: %s:%d', peer_connection.remoteAddress, peer_connection.remotePort)
@@ -251,6 +246,11 @@ webrtc-socket::
 				@_simple_peer_constructor::signal.call(peer_connection, signal)
 			.._tags = new Set
 		@_all_peer_connections.add(peer_connection)
+		# We're creating some connections upfront, while they might not be ever used, so let's drop them after timeout
+		timeout			= setTimeout (!~>
+			if !peer_connection.connected || !peer_connection._tags.size
+				peer_connection.destroy()
+		), @_peer_connection_timeout
 		peer_connection
 	/**
 	 * @param {string}	id

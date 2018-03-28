@@ -216,13 +216,8 @@
    * @return {SimplePeer}
    */
   x$._prepare_connection = function(initiator){
-    var timeout, x$, peer_connection, this$ = this;
+    var x$, peer_connection, timeout, this$ = this;
     debug('prepare connection, initiator: %s', initiator);
-    timeout = setTimeout(function(){
-      if (!peer_connection.connected || !peer_connection._tags.size) {
-        peer_connection.destroy();
-      }
-    }, this._peer_connection_timeout);
     x$ = peer_connection = this._simple_peer_constructor(Object.assign({}, this._simple_peer_opts, {
       initiator: initiator
     }));
@@ -305,6 +300,11 @@
     };
     x$._tags = new Set;
     this._all_peer_connections.add(peer_connection);
+    timeout = setTimeout(function(){
+      if (!peer_connection.connected || !peer_connection._tags.size) {
+        peer_connection.destroy();
+      }
+    }, this._peer_connection_timeout);
     return peer_connection;
   };
   /**
