@@ -83,7 +83,9 @@
         debug('got signal for WS (server): %s', signal);
         signal.extensions = this$._extensions;
         signal = bencode.encode(signal);
-        ws_connection.send(signal);
+        if (ws_connection.readyState === 1) {
+          ws_connection.send(signal);
+        }
       });
       x$.once('connect', function(){
         if (ws_connection.readyState === 1) {
@@ -161,7 +163,9 @@
               debug('got signal for WS (client): %s', signal);
               signal.extensions = this$._extensions;
               signal = bencode.encode(signal);
-              ws_connection.send(signal);
+              if (ws_connection.readyState === 1) {
+                ws_connection.send(signal);
+              }
             });
             x$.once('connect', function(){
               var remote_peer_info;

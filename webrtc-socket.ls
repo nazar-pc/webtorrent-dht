@@ -68,7 +68,8 @@ webrtc-socket::
 						# Append any supplied extensions
 						signal.extensions	= @_extensions
 						signal				= bencode.encode(signal)
-						ws_connection.send(signal)
+						if ws_connection.readyState == 1 # OPEN
+							ws_connection.send(signal)
 					)
 					..once('connect', !~>
 						if ws_connection.readyState == 1 # OPEN
@@ -136,7 +137,8 @@ webrtc-socket::
 									# Append any supplied extensions
 									signal.extensions	= @_extensions
 									signal				= bencode.encode(signal)
-									ws_connection.send(signal)
+									if ws_connection.readyState == 1 # OPEN
+										ws_connection.send(signal)
 								)
 								..once('connect', !~>
 									if ws_connection.readyState == 1 # OPEN
