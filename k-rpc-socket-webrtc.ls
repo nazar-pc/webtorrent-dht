@@ -63,7 +63,9 @@ function encode_info (ip, port)
 	options	= Object.assign({}, options)
 	if !options.k
 		throw new Error('k-rpc-socket-webrtc requires options.k to be specified explicitly')
-	@_k	= options.k
+	# Internal option, defines how much WebRTC connections will be prepared for DHT request, use log2(bucket size) in order to prevent number from growing too
+	# fast with bucket size
+	@_k	= Math.max(2, Math.floor(Math.log2(options.k)))
 	if !options.id
 		throw new Error('k-rpc-socket-webrtc requires options.id to be specified explicitly')
 	if Buffer.isBuffer(options.id)

@@ -86,7 +86,7 @@
     if (!options.k) {
       throw new Error('k-rpc-socket-webrtc requires options.k to be specified explicitly');
     }
-    this._k = options.k;
+    this._k = Math.max(2, Math.floor(Math.log2(options.k)));
     if (!options.id) {
       throw new Error('k-rpc-socket-webrtc requires options.id to be specified explicitly');
     }
