@@ -5,11 +5,12 @@
  * @license 0BSD
  */
 (function(){
-  var bencode, debug, EventEmitter, inherits, simplePeer, wrtc, ws, PEER_CONNECTION_TIMEOUT, SIMPLE_PEER_OPTS, x$, slice$ = [].slice;
+  var bencode, debug, EventEmitter, inherits, isIP, simplePeer, wrtc, ws, PEER_CONNECTION_TIMEOUT, SIMPLE_PEER_OPTS, x$, slice$ = [].slice;
   bencode = require('bencode');
   debug = require('debug')('webtorrent-dht');
   EventEmitter = require('events').EventEmitter;
   inherits = require('inherits');
+  isIP = require('isipaddress').test;
   simplePeer = require('simple-peer');
   wrtc = require('wrtc');
   ws = require('ws');
@@ -144,8 +145,17 @@
     } else {
       this._pending_peer_connections[address + ":" + port] = new Promise(function(resolve, reject){
         (function(WebSocket){
-          var x$, ws_connection, this$ = this;
-          x$ = ws_connection = new WebSocket("ws://" + address + ":" + port);
+          var ws_connection, e, x$, this$ = this;
+          try {
+            if (isIP(address)) {
+              throw '';
+            }
+            ws_connection = new WebSocket("wss://" + address + ":" + port);
+          } catch (e$) {
+            e = e$;
+            ws_connection = new WebSocket("ws://" + address + ":" + port);
+          }
+          x$ = ws_connection;
           x$.binaryType = 'arraybuffer';
           x$.onerror = function(e){
             reject();

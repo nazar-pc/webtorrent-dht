@@ -5,10 +5,9 @@
  * @license 0BSD
  */
 (function(){
-  var debug, inherits, isIP, kRpcSocket, webrtcSocket, noop, x$, slice$ = [].slice;
+  var debug, inherits, kRpcSocket, webrtcSocket, noop, x$, slice$ = [].slice;
   debug = require('debug')('webtorrent-dht');
   inherits = require('inherits');
-  isIP = require('isipaddress').test;
   kRpcSocket = require('k-rpc-socket');
   webrtcSocket = require('./webrtc-socket');
   module.exports = kRpcSocketWebrtc;
@@ -103,7 +102,9 @@
         }
       }
     });
-    options.isIP = isIP;
+    options.isIP = function(){
+      return true;
+    };
     this._id_length = options.id.length;
     this._info_length = this._id_length + 6;
     this._extensions = options.extensions || [];

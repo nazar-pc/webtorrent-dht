@@ -65,6 +65,7 @@ Example
 
   bencoded = d9:ws_serverd4:host9:127.0.0.14:porti16881eee
 
+NOTE: When connecting to bootstrap node, secure WebSocket connection attempt should be made and if it fails then fallback to insecure.
 
 Extensions
 ==========

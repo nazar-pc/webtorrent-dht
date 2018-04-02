@@ -5,7 +5,6 @@
  */
 debug			= require('debug')('webtorrent-dht')
 inherits		= require('inherits')
-isIP			= require('isipaddress').test
 k-rpc-socket	= require('k-rpc-socket')
 webrtc-socket	= require('./webrtc-socket')
 module.exports	= k-rpc-socket-webrtc
@@ -78,7 +77,8 @@ function encode_info (ip, port)
 			if request && request.peer.host == host && request.peer.port == port
 				request.peer	= peer
 	)
-	options.isIP	= isIP
+	# DNS resolver doesn't work in browser, so always return false, we'll only encounter this for WebSocket bootstrap nodes anyway and it will not be an issue
+	options.isIP	= -> true
 	@_id_length		= options.id.length
 	@_info_length	= @_id_length + 6
 	@_extensions	= options.extensions || []

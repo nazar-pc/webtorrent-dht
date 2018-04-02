@@ -7,6 +7,7 @@ bencode					= require('bencode')
 debug					= require('debug')('webtorrent-dht')
 EventEmitter			= require('events').EventEmitter
 inherits				= require('inherits')
+isIP					= require('isipaddress').test
 simple-peer				= require('simple-peer')
 wrtc					= require('wrtc')
 ws						= require('ws')
@@ -121,7 +122,15 @@ webrtc-socket::
 			# If connection not found - assume WebSocket and try to establish WebRTC connection using it
 			@_pending_peer_connections["#address:#port"] = new Promise (resolve, reject) !~>
 				let WebSocket = (if typeof WebSocket != 'undefined' then WebSocket else ws)
-					ws_connection = new WebSocket("ws://#address:#port")
+					# Prefer secure WebSocket connection if possible, otherwise fallback to insecure
+					try
+						# Only try secure WebSocket on domain names
+						if isIP(address)
+							throw ''
+						ws_connection = new WebSocket("wss://#address:#port")
+					catch
+						ws_connection = new WebSocket("ws://#address:#port")
+					ws_connection
 						..binaryType = 'arraybuffer'
 						..onerror = (e) !~>
 							reject()
