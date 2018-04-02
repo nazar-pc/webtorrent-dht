@@ -145,80 +145,97 @@
     } else {
       this._pending_peer_connections[address + ":" + port] = new Promise(function(resolve, reject){
         (function(WebSocket){
-          var ws_connection, e, x$, this$ = this;
-          try {
+          var e, this$ = this;
+          function secure_ws_client(){
+            var x$, ws_connection;
             if (isIP(address)) {
-              throw '';
+              insecure_ws_client();
+              return;
             }
-            ws_connection = new WebSocket("wss://" + address + ":" + port);
+            x$ = ws_connection = new WebSocket("wss://" + address + ":" + port);
+            x$.onerror = function(e){
+              insecure_ws_client();
+            };
+            add_ws_connection_handlers(ws_connection);
+          }
+          function insecure_ws_client(){
+            var x$, ws_connection;
+            x$ = ws_connection = new WebSocket("ws://" + address + ":" + port);
+            x$.onerror = function(e){
+              reject();
+              this$.emit('error', e);
+            };
+            add_ws_connection_handlers(ws_connection);
+          }
+          try {
+            secure_ws_client();
           } catch (e$) {
             e = e$;
-            ws_connection = new WebSocket("ws://" + address + ":" + port);
+            insecure_ws_client();
           }
-          x$ = ws_connection;
-          x$.binaryType = 'arraybuffer';
-          x$.onerror = function(e){
-            reject();
-            this$.emit('error', e);
-          };
-          x$.onclose = function(){
-            debug('closed WS connection');
-            this$._all_ws_connections['delete'](ws_connection);
-          };
-          x$.onopen = function(){
-            var x$, peer_connection, timeout;
-            debug('opened WS connection');
-            x$ = peer_connection = this$._prepare_connection(false);
-            x$.once('signal', function(signal){
-              debug('got signal for WS (client): %s', signal);
-              signal.extensions = this$._extensions;
-              signal = bencode.encode(signal);
-              if (ws_connection.readyState === 1) {
-                ws_connection.send(signal);
-              }
-            });
-            x$.once('connect', function(){
-              var remote_peer_info;
-              if (ws_connection.readyState === 1) {
-                ws_connection.close();
-              }
-              remote_peer_info = {
-                address: peer_connection.remoteAddress,
-                port: peer_connection.remotePort
-              };
-              this$._register_ws_connection_alias(remote_peer_info.address, remote_peer_info.port, address, port);
-              if (peer_connection.destroyed) {
-                reject();
-                return;
-              }
-              this$.send(buffer, offset, length, port, address, callback);
-              resolve(remote_peer_info);
-            });
-            x$.once('close', function(){
-              clearTimeout(timeout);
-            });
-            ws_connection.onmessage = function(arg$){
-              var data, signal, e;
-              data = arg$.data;
-              try {
-                signal = bencode.decode(data);
-                debug('got signal message from WS (client): %s', signal);
-                peer_connection.signal(signal);
-              } catch (e$) {
-                e = e$;
-                this$.emit('error', e);
-                ws_connection.close();
-              }
+          function add_ws_connection_handlers(ws_connection){
+            var x$;
+            x$ = ws_connection;
+            x$.binaryType = 'arraybuffer';
+            x$.onclose = function(){
+              debug('closed WS connection');
+              this$._all_ws_connections['delete'](ws_connection);
             };
-            timeout = setTimeout(function(){
-              ws_connection.close();
-              delete this$._pending_peer_connections[address + ":" + port];
-              if (!peer_connection.connected) {
-                reject();
-              }
-            }, this$._peer_connection_timeout);
-          };
-          this._all_ws_connections.add(ws_connection);
+            x$.onopen = function(){
+              var x$, peer_connection, timeout;
+              debug('opened WS connection');
+              x$ = peer_connection = this$._prepare_connection(false);
+              x$.once('signal', function(signal){
+                debug('got signal for WS (client): %s', signal);
+                signal.extensions = this$._extensions;
+                signal = bencode.encode(signal);
+                if (ws_connection.readyState === 1) {
+                  ws_connection.send(signal);
+                }
+              });
+              x$.once('connect', function(){
+                var remote_peer_info;
+                if (ws_connection.readyState === 1) {
+                  ws_connection.close();
+                }
+                remote_peer_info = {
+                  address: peer_connection.remoteAddress,
+                  port: peer_connection.remotePort
+                };
+                this$._register_ws_connection_alias(remote_peer_info.address, remote_peer_info.port, address, port);
+                if (peer_connection.destroyed) {
+                  reject();
+                  return;
+                }
+                this$.send(buffer, offset, length, port, address, callback);
+                resolve(remote_peer_info);
+              });
+              x$.once('close', function(){
+                clearTimeout(timeout);
+              });
+              ws_connection.onmessage = function(arg$){
+                var data, signal, e;
+                data = arg$.data;
+                try {
+                  signal = bencode.decode(data);
+                  debug('got signal message from WS (client): %s', signal);
+                  peer_connection.signal(signal);
+                } catch (e$) {
+                  e = e$;
+                  this$.emit('error', e);
+                  ws_connection.close();
+                }
+              };
+              timeout = setTimeout(function(){
+                ws_connection.close();
+                delete this$._pending_peer_connections[address + ":" + port];
+                if (!peer_connection.connected) {
+                  reject();
+                }
+              }, this$._peer_connection_timeout);
+            };
+            this$._all_ws_connections.add(ws_connection);
+          }
         }.call(this$, typeof WebSocket !== 'undefined' ? WebSocket : ws));
       });
       this._pending_peer_connections[address + ":" + port]['catch'](function(){});

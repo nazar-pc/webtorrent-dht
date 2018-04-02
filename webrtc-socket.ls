@@ -123,64 +123,74 @@ webrtc-socket::
 			@_pending_peer_connections["#address:#port"] = new Promise (resolve, reject) !~>
 				let WebSocket = (if typeof WebSocket != 'undefined' then WebSocket else ws)
 					# Prefer secure WebSocket connection if possible, otherwise fallback to insecure
-					try
+					!~function secure_ws_client
 						# Only try secure WebSocket on domain names
 						if isIP(address)
-							throw ''
+							insecure_ws_client()
+							return
 						ws_connection = new WebSocket("wss://#address:#port")
-					catch
+							..onerror = (e) !~>
+								insecure_ws_client()
+						add_ws_connection_handlers(ws_connection)
+					!~function insecure_ws_client
 						ws_connection = new WebSocket("ws://#address:#port")
-					ws_connection
-						..binaryType = 'arraybuffer'
-						..onerror = (e) !~>
-							reject()
-							@emit('error', e)
-						..onclose = !~>
-							debug('closed WS connection')
-							@_all_ws_connections.delete(ws_connection)
-						..onopen = !~>
-							debug('opened WS connection')
-							peer_connection = @_prepare_connection(false)
-								..once('signal', (signal) !~>
-									debug('got signal for WS (client): %s', signal)
-									# Append any supplied extensions
-									signal.extensions	= @_extensions
-									signal				= bencode.encode(signal)
-									if ws_connection.readyState == 1 # OPEN
-										ws_connection.send(signal)
-								)
-								..once('connect', !~>
-									if ws_connection.readyState == 1 # OPEN
+							..onerror = (e) !~>
+								reject()
+								@emit('error', e)
+						add_ws_connection_handlers(ws_connection)
+					try
+						secure_ws_client()
+					catch
+						insecure_ws_client()
+					!~function add_ws_connection_handlers (ws_connection)
+						ws_connection
+							..binaryType = 'arraybuffer'
+							..onclose = !~>
+								debug('closed WS connection')
+								@_all_ws_connections.delete(ws_connection)
+							..onopen = !~>
+								debug('opened WS connection')
+								peer_connection = @_prepare_connection(false)
+									..once('signal', (signal) !~>
+										debug('got signal for WS (client): %s', signal)
+										# Append any supplied extensions
+										signal.extensions	= @_extensions
+										signal				= bencode.encode(signal)
+										if ws_connection.readyState == 1 # OPEN
+											ws_connection.send(signal)
+									)
+									..once('connect', !~>
+										if ws_connection.readyState == 1 # OPEN
+											ws_connection.close()
+										remote_peer_info	=
+											address	: peer_connection.remoteAddress
+											port	: peer_connection.remotePort
+										# Create alias for WebSocket connection
+										@_register_ws_connection_alias(remote_peer_info.address, remote_peer_info.port, address, port)
+										if peer_connection.destroyed
+											reject()
+											return
+										@send(buffer, offset, length, port, address, callback)
+										resolve(remote_peer_info)
+									)
+									..once('close', !->
+										clearTimeout(timeout)
+									)
+								ws_connection.onmessage = ({data}) !~>
+									try
+										signal	= bencode.decode(data)
+										debug('got signal message from WS (client): %s', signal)
+										peer_connection.signal(signal)
+									catch e
+										@emit('error', e)
 										ws_connection.close()
-									remote_peer_info	=
-										address	: peer_connection.remoteAddress
-										port	: peer_connection.remotePort
-									# Create alias for WebSocket connection
-									@_register_ws_connection_alias(remote_peer_info.address, remote_peer_info.port, address, port)
-									if peer_connection.destroyed
-										reject()
-										return
-									@send(buffer, offset, length, port, address, callback)
-									resolve(remote_peer_info)
-								)
-								..once('close', !->
-									clearTimeout(timeout)
-								)
-							ws_connection.onmessage = ({data}) !~>
-								try
-									signal	= bencode.decode(data)
-									debug('got signal message from WS (client): %s', signal)
-									peer_connection.signal(signal)
-								catch e
-									@emit('error', e)
+								timeout = setTimeout (!~>
 									ws_connection.close()
-							timeout = setTimeout (!~>
-								ws_connection.close()
-								delete @_pending_peer_connections["#address:#port"]
-								if !peer_connection.connected
-									reject()
-							), @_peer_connection_timeout
-					@_all_ws_connections.add(ws_connection)
+									delete @_pending_peer_connections["#address:#port"]
+									if !peer_connection.connected
+										reject()
+								), @_peer_connection_timeout
+						@_all_ws_connections.add(ws_connection)
 			@_pending_peer_connections["#address:#port"].catch(->)
 	/**
 	 * @param {boolean} initiator
