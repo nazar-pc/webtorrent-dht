@@ -11848,7 +11848,7 @@ exports.RTCSessionDescription = window.RTCSessionDescription;
    */
   x$._add_id_mapping = function(id, peer_connection){
     var ip, port, this$ = this;
-    if (!(peer_connection instanceof simplePeer)) {
+    if (!(peer_connection instanceof this._simple_peer_constructor)) {
       ip = peer_connection.host || peer_connection.address;
       port = peer_connection.port;
       if (!this._peer_connections[ip + ":" + port]) {

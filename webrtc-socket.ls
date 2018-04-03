@@ -278,7 +278,7 @@ webrtc-socket::
 	 * @param {!Object}	peer_connection
 	 */
 	.._add_id_mapping = (id, peer_connection) !->
-		if !(peer_connection instanceof simple-peer)
+		if !(peer_connection instanceof @_simple_peer_constructor)
 			ip		= peer_connection.host || peer_connection.address
 			port	= peer_connection.port
 			if !@_peer_connections["#ip:#port"]
