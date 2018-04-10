@@ -38,7 +38,7 @@
   };
   x$.toJSON = function(){
     return {
-      nodes: this._rpc.socket.socket.known_ws_servers(),
+      nodes: this._rpc.socket.socket.known_http_servers(),
       values: bittorrentDht.prototype.toJSON.call(this).values
     };
   };

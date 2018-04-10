@@ -31,6 +31,6 @@ webtorrent-dht::
 		@_rpc.bind(port, address, callback)
 	..toJSON = ->
 		{
-			nodes	: @_rpc.socket.socket.known_ws_servers() # Hack: there is a nicer way to do this, but probably doesn't worth the effort
+			nodes	: @_rpc.socket.socket.known_http_servers() # Hack: there is a nicer way to do this, but probably doesn't worth the effort
 			values	: bittorrent-dht::toJSON.call(@).values
 		}

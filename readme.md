@@ -4,7 +4,7 @@ This is an example implementation of something that might become WebTorrent DHT.
 This project is WIP and not ready for production use.
 
 ## How to use
-Assuming you're familiar with [bittorrent-dht](https://github.com/webtorrent/bittorrent-dht) usage is the same with 2 differences: bootstrap nodes are WebSocket nodes and by binding to address and port effectively WebSocket server is started. Everything else is happening under the hood.
+Assuming you're familiar with [bittorrent-dht](https://github.com/webtorrent/bittorrent-dht) usage is the same one difference: bootstrap nodes have HTTP server running and by binding to address and port effectively HTTP server is started. Everything else is happening under the hood.
 
 Also `K` in WebTorrent DHT defaults to `2`, which is much more reasonable for WebRTC realities.
 
@@ -12,7 +12,7 @@ Additional options specific to WebTorrent DHT are:
 * `extensions` - Array of strings with extensions supported by current node
 * `simple_peer_opts` - Object as in [simple-peer constructor](https://github.com/feross/simple-peer#peer--new-simplepeeropts), used by `webrtc-socket`
 * `simple_peer_constructor` - Custom implementation of `simple-peer`, in case it is necessary
-* `ws_address` - Object with keys `address` and `port` that corresponds to running WebSocket server (specify this in case when publicly accessible address/port are different from those where WebSocket server is listening on), used by `webrtc-socket`
+* `http_address` - Object with keys `address` and `port` that corresponds to running HTTP server (specify this in case when publicly accessible address/port are different from those where HTTP server is listening on), used by `webrtc-socket`
 
 There are simple demos in `demo` directory, you can run them in browser and on the server and then use `dht` key on `window` or `global` for DHT queries.
 
@@ -39,9 +39,9 @@ For high level protocol extension description in form of potential BEP take a lo
 ### webtorrent-dht
 Uses `k-rpc-webrtc` instance instead of `k-rpc` in constructor.
 
-Patches its `toJSON()` method of `bittorrent-dht` so that `nodes` property of returned object contains WebSockets nodes only. This ensures that bootstrapping will be possible from those nodes in future (WebRTC-only nodes can't be used for this since they require 2-way signaling before connection can be established).
+Patches its `toJSON()` method of `bittorrent-dht` so that `nodes` property of returned object contains bootstrap nodes with HTTP servers only. This ensures that bootstrapping will be possible from those nodes in future (WebRTC-only nodes can't be used for this since they require 2-way signaling before connection can be established).
 
-Also `listen()` method is now used to start WebSocket server, but this will be detailed in `webrtc-socket` component.
+Also `listen()` method is now used to start HTTP server, but this will be detailed in `webrtc-socket` component.
 
 Other than mentioned changes `webtorrent-dht` API is exactly the same as `bittorrent-dht`.
 
@@ -70,12 +70,12 @@ Also associates nodes IDs with corresponding WebRTC peers connections.
 ### webrtc-socket
 Implements the subset of `dgram` interface (`address`, `bind`, `close`, `emit`, `on` and `send` methods) as used by `k-rpc-socket` (exactly what is used, nothing more) and superset on top of it with features used by `k-rpc-socket-webrtc` and `webtorrent-dht`.
 
-* `address` method returns information about where WebSocket server is listening, object with keys `address` and `port`
-* `bind` method starts WebSocket server on specified address and port (both should be specified explicitly)
-* `close` method closes all WebRTC connections and stops WebSocket server if it is running
+* `address` method returns information about where HTTP server is listening, object with keys `address` and `port`
+* `bind` method starts HTTP server on specified address and port (both should be specified explicitly)
+* `close` method closes all WebRTC connections and stops HTTP server if it is running
 * `emit` method emits an event with arguments
 * `on` method adds handler for an event
-* `send` method first checks if there is an established WebRTC connection to specified address and port, if not - assumes WebSocket address and port were specified, so that it will establish WebSocket connection, use it for establishing WebRTC connection, will close WebSocket connection and create an alias to use WebRTC connection instead next time
+* `send` method first checks if there is an established WebRTC connection to specified address and port, if not - assumes HTTP address and port were specified, so that it will establish HTTP connection, use it for establishing WebRTC connection, will close HTTP connection and create an alias to use WebRTC connection instead next time
 
 There are a few of public methods exposed by `webrtc-socket`:
 * `get_id_mapping(id : string)` - Allows to get `simple-peer` instance by node's ID if connection is already established
@@ -86,7 +86,7 @@ There are also a few events exposed by `webrtc-socket`:
 * `node_connected` with string argument `id` - Is fired when there is a new connection established
 * `node_disconnected` with string argument `id` - Is fired when there is a connection was closed
 * `extensions_received` with arguments `peer_connection` (`simple-peer` instance) and an array `extensions` - If fired when extensions are received from the other peer
-* `websocket_peer_connection_alias` with arguments `host`, `port` and `peer_connection` - Is fired when peer connection is aliased by websocket host and port (from bootstrap node)
+* `http_peer_connection_alias` with arguments `host`, `port` and `peer_connection` - Is fired when peer connection is aliased by HTTP host and port (from bootstrap node)
 
 ## Contribution
 Feel free to create issues and send pull requests (for big changes create an issue first and link it from the PR), they are highly appreciated!

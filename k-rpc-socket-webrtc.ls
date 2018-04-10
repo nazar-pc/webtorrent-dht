@@ -72,12 +72,12 @@ function encode_info (ip, port)
 	else
 		@id	= Buffer.from(options.id, 'hex')
 	options.socket	= options.socket || webrtc-socket(options)
-	options.socket.on('update_websocket_request_peer', (host, port, peer) !~>
+	options.socket.on('update_http_request_peer', (host, port, peer) !~>
 		for request in @_reqs
 			if request && request.peer.host == host && request.peer.port == port
 				request.peer	= peer
 	)
-	# DNS resolver doesn't work in browser, so always return false, we'll only encounter this for WebSocket bootstrap nodes anyway and it will not be an issue
+	# DNS resolver doesn't work in browser, so always return false, we'll only encounter this for HTTP bootstrap nodes anyway and it will not be an issue
 	options.isIP	= -> true
 	@_id_length		= options.id.length
 	@_info_length	= @_id_length + 6

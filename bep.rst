@@ -27,25 +27,23 @@ The closest thing we have in browsers right now is WebRTC, which while is useful
 
 The architecture proposed here includes 2 kinds of nodes:
 
-- nodes of the first type are only capable of using WebRTC connections and can connect to nodes of the second type as WebSocket clients
+- nodes of the first type are only capable of using WebRTC connections and can connect to nodes of the second type as HTTP clients
 
-- nodes of the second type are running WebSocket server in addition to what is supported by the nodes of the first type
+- nodes of the second type are running HTTP server in addition to what is supported by the nodes of the first type
 
-Having WebSocket nodes in the network allows to use them for bootstrapping while using WebRTC connections for everything else.
+Having HTTP nodes in the network allows to use them for bootstrapping while using WebRTC connections for everything else.
 
-WebSocket server/client
-=======================
+HTTP server/client
+==================
 
-WebSocket server on the node of the second type is listening on specific address and port for incoming connections, this is used by WebSocket clients for bootstrap process.
+HTTP server on the node of the second type is listening on specific address and port for incoming connections, this is used by HTTP clients for bootstrap process.
 
-As soon as new WebSocket connection is established it is only used for exchanging signaling data necessary for WebRTC.
+Client connects to HTTP server and exchanges signaling data necessary for establishing WebRTC connection..
 More specifically:
 
-- node that is running WebSocket server is creating `RTCPeerConnection`_ and sends to the WebSocket client bencoded SDP offer message. Message is a dictionary with key "type" with value "offer" and key "sdp" with session description and optional key "extensions" with an array of extensions supported (see next section for details)
+- client creates `RTCPeerConnection`_ and sends an HTTP request with method "POST" and body that is JSON-encoded SDP offer message. Message is a dictionary with key "type" with value "offer", key "sdp" with session description and optional key "extensions" with an array of extensions supported (see next section for details)
 
-- after WebSocket client receives SDP offer message it will send SPD answer message
-
-- as soon as WebRTC connection is established WebSocket server closes WebSocket connection to the client
+- HTTP server also creates `RTCPeerConnection`_, consumes signaling data, responds with JSON-encoded SPD answer message (same as request, but with "type" value "answer") and closes connection
 
 ::
 
@@ -54,18 +52,16 @@ More specifically:
 
   Answer = {"type" : "answer", "sdp" : "<session description>", "extensions" : []}
 
-After establishing WebRTC connection a node that is also running WebSocket server should send a bencoded message containing a dictionary with key "ws_server" which in turn contains a dictionary with keys "host" and "port" that correspond to the publicly accessible host and port of running WebSocket server.
+After establishing WebRTC connection a node that is also running HTTP server should send a JSON-encoded message containing a dictionary with key "http_server" which in turn contains a dictionary with keys "host" and "port" that correspond to the publicly accessible host and port of running HTTP server.
 This information can be used to establish direct connection later, for instance, to use host and port as bootstrap node:
 
 Example
 
 ::
 
-  WebSocket server info = {"ws_server" : {"host" : "127.0.0.1" , "port" : 16881}}
+  HTTP server info = {"http_server" : {"host" : "127.0.0.1" , "port" : 16881}}
 
-  bencoded = d9:ws_serverd4:host9:127.0.0.14:porti16881eee
-
-NOTE: When connecting to bootstrap node, secure WebSocket connection attempt should be made and if it fails then fallback to insecure.
+NOTE: When connecting to bootstrap node, HTTPS connection attempt should be made first and if it fails then fallback to insecure HTTP.
 
 Extensions
 ==========
@@ -82,7 +78,7 @@ BitTorrent DHT protocol extension
 =================================
 
 First of all, WebTorrent DHT works similarly to `BEP 0005`_, but uses WebRTC transport instead of UDP and IP address/port associated with remote address and port of connected WebRTC node.
-For bootstrap nodes node should keep an alias to established WebRTC connection in order to avoid repeated WebSocket connections to the same node when WebRTC connection is already present.
+For bootstrap nodes node should keep an alias to established WebRTC connection in order to avoid repeated HTTP connections to the same node when WebRTC connection is already present.
 
 find_node, get_peers and get queries and responses
 --------------------------------------------------
