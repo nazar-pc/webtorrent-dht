@@ -61,7 +61,7 @@ webrtc-socket::
 					body	+= chunk
 				)
 				.on('end', !~>
-					peer_connection = @_prepare_connection(false)
+					@_prepare_connection(false)
 						..once('signal', (signal) !~>
 							debug('got signal for HTTP (server): %s', signal)
 							# Append any supplied extensions

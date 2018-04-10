@@ -68,8 +68,8 @@
       request.on('data', function(chunk){
         body += chunk;
       }).on('end', function(){
-        var x$, peer_connection;
-        x$ = peer_connection = this$._prepare_connection(false);
+        var x$;
+        x$ = this$._prepare_connection(false);
         x$.once('signal', function(signal){
           debug('got signal for HTTP (server): %s', signal);
           signal.extensions = this$._extensions;
