@@ -9,7 +9,7 @@ EventEmitter			= require('events').EventEmitter
 http					= require('http')
 inherits				= require('inherits')
 isIP					= require('isipaddress').test
-node-fetch				= require('node-fetch')
+fetch					= require('node-fetch')
 simple-peer				= require('simple-peer')
 wrtc					= require('wrtc')
 module.exports			= webrtc-socket
@@ -122,51 +122,49 @@ webrtc-socket::
 		else
 			# If connection not found - assume HTTP and try to establish WebRTC connection using it
 			@_pending_peer_connections["#address:#port"] = new Promise (resolve, reject) !~>
-				# `node-fetch` will only be present in Node.js
-				let fetch = node-fetch || fetch
-					peer_connection = @_prepare_connection(true)
-						..once('signal', (signal) !~>
-							debug('got signal for HTTP (client): %s', signal)
-							# Append any supplied extensions
-							signal.extensions	= @_extensions
-							init				=
-								method	: 'POST'
-								body	: JSON.stringify(signal)
-							# Prefer HTTPS connection if possible, otherwise fallback to insecure
-							fetch("https://#address:#port", init)
-								.catch ->
-									fetch("http://#address:#port", init)
-								.then (response) ->
-									response.json()
-								.then (signal) !->
-									if peer_connection.destroyed
-										reject()
-										return
-									peer_connection.signal(signal)
-								.catch (e) !~>
+				peer_connection = @_prepare_connection(true)
+					..once('signal', (signal) !~>
+						debug('got signal for HTTP (client): %s', signal)
+						# Append any supplied extensions
+						signal.extensions	= @_extensions
+						init				=
+							method	: 'POST'
+							body	: JSON.stringify(signal)
+						# Prefer HTTPS connection if possible, otherwise fallback to insecure
+						fetch("https://#address:#port", init)
+							.catch ->
+								fetch("http://#address:#port", init)
+							.then (response) ->
+								response.json()
+							.then (signal) !->
+								if peer_connection.destroyed
 									reject()
-									@emit('error', e)
-						)
-						..once('connect', !~>
-							remote_peer_info	=
-								address	: peer_connection.remoteAddress
-								port	: peer_connection.remotePort
-							# Create alias for HTTP connection
-							@_register_http_connection_alias(remote_peer_info.address, remote_peer_info.port, address, port)
-							if peer_connection.destroyed
+									return
+								peer_connection.signal(signal)
+							.catch (e) !~>
 								reject()
-								return
-							@send(buffer, offset, length, port, address, callback)
-							resolve(remote_peer_info)
-						)
-						..once('close', !->
-							clearTimeout(timeout)
-						)
-					timeout = setTimeout (!~>
-						delete @_pending_peer_connections["#address:#port"]
-						if !peer_connection.connected
+								@emit('error', e)
+					)
+					..once('connect', !~>
+						remote_peer_info	=
+							address	: peer_connection.remoteAddress
+							port	: peer_connection.remotePort
+						# Create alias for HTTP connection
+						@_register_http_connection_alias(remote_peer_info.address, remote_peer_info.port, address, port)
+						if peer_connection.destroyed
 							reject()
-					), @_peer_connection_timeout
+							return
+						@send(buffer, offset, length, port, address, callback)
+						resolve(remote_peer_info)
+					)
+					..once('close', !->
+						clearTimeout(timeout)
+					)
+				timeout = setTimeout (!~>
+					delete @_pending_peer_connections["#address:#port"]
+					if !peer_connection.connected
+						reject()
+				), @_peer_connection_timeout
 			@_pending_peer_connections["#address:#port"].catch(->)
 	/**
 	 * @param {boolean} initiator

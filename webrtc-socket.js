@@ -5,14 +5,14 @@
  * @license 0BSD
  */
 (function(){
-  var bencode, debug, EventEmitter, http, inherits, isIP, nodeFetch, simplePeer, wrtc, PEER_CONNECTION_TIMEOUT, SIMPLE_PEER_OPTS, x$, slice$ = [].slice;
+  var bencode, debug, EventEmitter, http, inherits, isIP, fetch, simplePeer, wrtc, PEER_CONNECTION_TIMEOUT, SIMPLE_PEER_OPTS, x$, slice$ = [].slice;
   bencode = require('bencode');
   debug = require('debug')('webtorrent-dht');
   EventEmitter = require('events').EventEmitter;
   http = require('http');
   inherits = require('inherits');
   isIP = require('isipaddress').test;
-  nodeFetch = require('node-fetch');
+  fetch = require('node-fetch');
   simplePeer = require('simple-peer');
   wrtc = require('wrtc');
   module.exports = webrtcSocket;
@@ -140,56 +140,54 @@
       })['catch'](function(){});
     } else {
       this._pending_peer_connections[address + ":" + port] = new Promise(function(resolve, reject){
-        (function(fetch){
-          var x$, peer_connection, timeout, this$ = this;
-          x$ = peer_connection = this._prepare_connection(true);
-          x$.once('signal', function(signal){
-            var init;
-            debug('got signal for HTTP (client): %s', signal);
-            signal.extensions = this$._extensions;
-            init = {
-              method: 'POST',
-              body: JSON.stringify(signal)
-            };
-            fetch("https://" + address + ":" + port, init)['catch'](function(){
-              return fetch("http://" + address + ":" + port, init);
-            }).then(function(response){
-              return response.json();
-            }).then(function(signal){
-              if (peer_connection.destroyed) {
-                reject();
-                return;
-              }
-              peer_connection.signal(signal);
-            })['catch'](function(e){
-              reject();
-              this$.emit('error', e);
-            });
-          });
-          x$.once('connect', function(){
-            var remote_peer_info;
-            remote_peer_info = {
-              address: peer_connection.remoteAddress,
-              port: peer_connection.remotePort
-            };
-            this$._register_http_connection_alias(remote_peer_info.address, remote_peer_info.port, address, port);
+        var x$, peer_connection, timeout;
+        x$ = peer_connection = this$._prepare_connection(true);
+        x$.once('signal', function(signal){
+          var init;
+          debug('got signal for HTTP (client): %s', signal);
+          signal.extensions = this$._extensions;
+          init = {
+            method: 'POST',
+            body: JSON.stringify(signal)
+          };
+          fetch("https://" + address + ":" + port, init)['catch'](function(){
+            return fetch("http://" + address + ":" + port, init);
+          }).then(function(response){
+            return response.json();
+          }).then(function(signal){
             if (peer_connection.destroyed) {
               reject();
               return;
             }
-            this$.send(buffer, offset, length, port, address, callback);
-            resolve(remote_peer_info);
+            peer_connection.signal(signal);
+          })['catch'](function(e){
+            reject();
+            this$.emit('error', e);
           });
-          x$.once('close', function(){
-            clearTimeout(timeout);
-          });
-          timeout = setTimeout(function(){
-            delete this$._pending_peer_connections[address + ":" + port];
-            if (!peer_connection.connected) {
-              reject();
-            }
-          }, this._peer_connection_timeout);
-        }.call(this$, nodeFetch || fetch));
+        });
+        x$.once('connect', function(){
+          var remote_peer_info;
+          remote_peer_info = {
+            address: peer_connection.remoteAddress,
+            port: peer_connection.remotePort
+          };
+          this$._register_http_connection_alias(remote_peer_info.address, remote_peer_info.port, address, port);
+          if (peer_connection.destroyed) {
+            reject();
+            return;
+          }
+          this$.send(buffer, offset, length, port, address, callback);
+          resolve(remote_peer_info);
+        });
+        x$.once('close', function(){
+          clearTimeout(timeout);
+        });
+        timeout = setTimeout(function(){
+          delete this$._pending_peer_connections[address + ":" + port];
+          if (!peer_connection.connected) {
+            reject();
+          }
+        }, this$._peer_connection_timeout);
       });
       this._pending_peer_connections[address + ":" + port]['catch'](function(){});
     }
