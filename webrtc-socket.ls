@@ -3,6 +3,7 @@
  * @author  Nazar Mokrynskyi <nazar@mokrynskyi.com>
  * @license 0BSD
  */
+bencode					= require('bencode')
 debug					= require('debug')('webtorrent-dht')
 EventEmitter			= require('events').EventEmitter
 http					= require('http')
@@ -54,10 +55,10 @@ webrtc-socket::
 				response.writeHead(400)
 				response.end()
 				return
-			body	= []
+			body	= ''
 			request
 				.on('data', (chunk) !->
-					body.push(chunk)
+					body	+= chunk
 				)
 				.on('end', !~>
 					peer_connection = @_prepare_connection(false)
@@ -81,8 +82,9 @@ webrtc-socket::
 								response.writeHead(500)
 								response.end()
 						)
-						..signal(Buffer.concat(body).toString())
+						..signal(JSON.parse(body))
 				)
+				.setEncoding('utf8')
 		@http_server
 			..listen(port, address, !~>
 				debug('listening for HTTP connections on %s:%d', address, port)
@@ -192,6 +194,8 @@ webrtc-socket::
 			..on('data', (data) !~>
 				if debug.enabled
 					debug('got data: %o, %s', data, data.toString())
+				if data instanceof Uint8Array
+					data = Buffer.from(data)
 				if !peer_connection._http_info_checked
 					peer_connection._http_info_checked	= true
 					try
@@ -203,8 +207,7 @@ webrtc-socket::
 								port	: data_decoded.http_server.port
 							}
 							return
-				if data instanceof Uint8Array
-					data = Buffer.from(data)
+				data_decoded = bencode.decode(data)
 				# Only `Buffer` format is used for DHT
 				if Buffer.isBuffer(data)
 					# Peer might be not yet marked as connected, be prepared for this and wait for remote peer info to become available

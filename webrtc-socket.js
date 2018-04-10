@@ -5,7 +5,8 @@
  * @license 0BSD
  */
 (function(){
-  var debug, EventEmitter, http, inherits, isIP, nodeFetch, simplePeer, wrtc, PEER_CONNECTION_TIMEOUT, SIMPLE_PEER_OPTS, x$, slice$ = [].slice;
+  var bencode, debug, EventEmitter, http, inherits, isIP, nodeFetch, simplePeer, wrtc, PEER_CONNECTION_TIMEOUT, SIMPLE_PEER_OPTS, x$, slice$ = [].slice;
+  bencode = require('bencode');
   debug = require('debug')('webtorrent-dht');
   EventEmitter = require('events').EventEmitter;
   http = require('http');
@@ -63,9 +64,9 @@
         response.end();
         return;
       }
-      body = [];
+      body = '';
       request.on('data', function(chunk){
-        body.push(chunk);
+        body += chunk;
       }).on('end', function(){
         var x$, peer_connection;
         x$ = peer_connection = this$._prepare_connection(false);
@@ -91,8 +92,8 @@
             response.end();
           }
         });
-        x$.signal(Buffer.concat(body).toString());
-      });
+        x$.signal(JSON.parse(body));
+      }).setEncoding('utf8');
     });
     x$ = this.http_server;
     x$.listen(port, address, function(){
@@ -227,6 +228,9 @@
       if (debug.enabled) {
         debug('got data: %o, %s', data, data.toString());
       }
+      if (data instanceof Uint8Array) {
+        data = Buffer.from(data);
+      }
       if (!peer_connection._http_info_checked) {
         peer_connection._http_info_checked = true;
         try {
@@ -240,9 +244,7 @@
           }
         } catch (e$) {}
       }
-      if (data instanceof Uint8Array) {
-        data = Buffer.from(data);
-      }
+      data_decoded = bencode.decode(data);
       if (Buffer.isBuffer(data)) {
         if (peer_connection.connected) {
           this$.emit('message', data, {
