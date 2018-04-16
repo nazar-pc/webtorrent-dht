@@ -91,6 +91,8 @@ There are also a few events exposed by `webrtc-socket`:
 ## Contribution
 Feel free to create issues and send pull requests (for big changes create an issue first and link it from the PR), they are highly appreciated!
 
+When reading LiveScript code make sure to configure 1 tab to be 4 spaces (GitHub uses 8 by default), otherwise code might be hard to read.
+
 ## License
 Free Public License 1.0.0 / Zero Clause BSD License
 
