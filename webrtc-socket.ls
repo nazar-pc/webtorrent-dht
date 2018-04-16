@@ -132,8 +132,11 @@ webrtc-socket::
 							body	: JSON.stringify(signal)
 						# Prefer HTTPS connection if possible, otherwise fallback to insecure
 						fetch("https://#address:#port", init)
-							.catch ->
-								fetch("http://#address:#port", init)
+							.catch (e) ->
+								if location.protocol == 'http:'
+									fetch("http://#address:#port", init)
+								else
+									throw e
 							.then (response) ->
 								response.json()
 							.then (signal) !->

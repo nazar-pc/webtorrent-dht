@@ -5,7 +5,7 @@
  * @license 0BSD
  */
 (function(){
-  var bencode, debug, EventEmitter, http, inherits, isIP, fetch, simplePeer, wrtc, PEER_CONNECTION_TIMEOUT, SIMPLE_PEER_OPTS, x$, slice$ = [].slice;
+  var bencode, debug, EventEmitter, http, inherits, isIP, fetch, simplePeer, wrtc, PEER_CONNECTION_TIMEOUT, SIMPLE_PEER_OPTS, x$, slice$ = [].slice, arrayFrom$ = Array.from || function(x){return slice$.call(x);};
   bencode = require('bencode');
   debug = require('debug')('webtorrent-dht');
   EventEmitter = require('events').EventEmitter;
@@ -150,8 +150,12 @@
             method: 'POST',
             body: JSON.stringify(signal)
           };
-          fetch("https://" + address + ":" + port, init)['catch'](function(){
-            return fetch("http://" + address + ":" + port, init);
+          fetch("https://" + address + ":" + port, init)['catch'](function(e){
+            if (location.protocol === 'http:') {
+              return fetch("http://" + address + ":" + port, init);
+            } else {
+              throw e;
+            }
           }).then(function(response){
             return response.json();
           }).then(function(signal){
@@ -261,7 +265,7 @@
     });
     x$.on('error', function(){
       debug('peer error: %o', arguments);
-      this$.emit.apply(this$, ['error'].concat(slice$.call(arguments)));
+      this$.emit.apply(this$, ['error'].concat(arrayFrom$(arguments)));
     });
     x$.once('close', function(){
       clearTimeout(timeout);
