@@ -158,6 +158,7 @@ webrtc-socket::
 							reject()
 							return
 						@send(buffer, offset, length, port, address, callback)
+						delete @_pending_peer_connections["#address:#port"]
 						resolve(remote_peer_info)
 					)
 					..once('close', !->

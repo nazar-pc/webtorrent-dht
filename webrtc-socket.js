@@ -181,6 +181,7 @@
             return;
           }
           this$.send(buffer, offset, length, port, address, callback);
+          delete this$._pending_peer_connections[address + ":" + port];
           resolve(remote_peer_info);
         });
         x$.once('close', function(){
