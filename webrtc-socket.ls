@@ -4,7 +4,7 @@
  * @license 0BSD
  */
 bencode					= require('bencode')
-debug					= require('debug')('webtorrent-dht')
+debug					= require('debug')?('webtorrent-dht') || ->
 EventEmitter			= require('events').EventEmitter
 http					= require('http')
 inherits				= require('inherits')

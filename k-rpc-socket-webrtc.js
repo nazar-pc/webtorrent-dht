@@ -5,8 +5,8 @@
  * @license 0BSD
  */
 (function(){
-  var debug, inherits, kRpcSocket, webrtcSocket, noop, x$, slice$ = [].slice;
-  debug = require('debug')('webtorrent-dht');
+  var debug, ref$, inherits, kRpcSocket, webrtcSocket, noop, x$, slice$ = [].slice, arrayFrom$ = Array.from || function(x){return slice$.call(x);};
+  debug = (typeof (ref$ = require('debug')) == 'function' ? ref$('webtorrent-dht') : void 8) || function(){};
   inherits = require('inherits');
   kRpcSocket = require('k-rpc-socket');
   webrtcSocket = require('./webrtc-socket');
@@ -248,7 +248,7 @@
           }
           args = res$;
           if (!(!error && Array.isArray(response.r.signals))) {
-            callback.apply(null, [error, response].concat(slice$.call(args)));
+            callback.apply(null, [error, response].concat(arrayFrom$(args)));
             return;
           }
           /**
@@ -328,7 +328,7 @@
             } else if (response.r.values) {
               response.r.values = peers;
             }
-            callback.apply(null, [error, response].concat(slice$.call(args)));
+            callback.apply(null, [error, response].concat(arrayFrom$(args)));
           });
         });
       });

@@ -3,7 +3,7 @@
  * @author  Nazar Mokrynskyi <nazar@mokrynskyi.com>
  * @license 0BSD
  */
-debug			= require('debug')('webtorrent-dht')
+debug			= require('debug')?('webtorrent-dht') || ->
 inherits		= require('inherits')
 k-rpc-socket	= require('k-rpc-socket')
 webrtc-socket	= require('./webrtc-socket')

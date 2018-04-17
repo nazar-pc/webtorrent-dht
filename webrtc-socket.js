@@ -5,9 +5,9 @@
  * @license 0BSD
  */
 (function(){
-  var bencode, debug, EventEmitter, http, inherits, isIP, fetch, simplePeer, wrtc, PEER_CONNECTION_TIMEOUT, SIMPLE_PEER_OPTS, x$, slice$ = [].slice, arrayFrom$ = Array.from || function(x){return slice$.call(x);};
+  var bencode, debug, ref$, EventEmitter, http, inherits, isIP, fetch, simplePeer, wrtc, PEER_CONNECTION_TIMEOUT, SIMPLE_PEER_OPTS, x$, slice$ = [].slice, arrayFrom$ = Array.from || function(x){return slice$.call(x);};
   bencode = require('bencode');
-  debug = require('debug')('webtorrent-dht');
+  debug = (typeof (ref$ = require('debug')) == 'function' ? ref$('webtorrent-dht') : void 8) || function(){};
   EventEmitter = require('events').EventEmitter;
   http = require('http');
   inherits = require('inherits');
