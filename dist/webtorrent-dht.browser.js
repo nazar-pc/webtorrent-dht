@@ -7,8 +7,8 @@
  * @license 0BSD
  */
 (function(){
-  var debug, inherits, kRpcSocket, webrtcSocket, noop, x$, slice$ = [].slice;
-  debug = require('debug')('webtorrent-dht');
+  var debug, ref$, inherits, kRpcSocket, webrtcSocket, noop, x$, slice$ = [].slice, arrayFrom$ = Array.from || function(x){return slice$.call(x);};
+  debug = (typeof (ref$ = require('debug')) == 'function' ? ref$('webtorrent-dht') : void 8) || function(){};
   inherits = require('inherits');
   kRpcSocket = require('k-rpc-socket');
   webrtcSocket = require('./webrtc-socket');
@@ -250,7 +250,7 @@
           }
           args = res$;
           if (!(!error && Array.isArray(response.r.signals))) {
-            callback.apply(null, [error, response].concat(slice$.call(args)));
+            callback.apply(null, [error, response].concat(arrayFrom$(args)));
             return;
           }
           /**
@@ -330,7 +330,7 @@
             } else if (response.r.values) {
               response.r.values = peers;
             }
-            callback.apply(null, [error, response].concat(slice$.call(args)));
+            callback.apply(null, [error, response].concat(arrayFrom$(args)));
           });
         });
       });
@@ -11564,9 +11564,9 @@ exports.RTCSessionDescription = window.RTCSessionDescription;
  * @license 0BSD
  */
 (function(){
-  var bencode, debug, EventEmitter, http, inherits, isIP, fetch, simplePeer, wrtc, PEER_CONNECTION_TIMEOUT, SIMPLE_PEER_OPTS, x$, slice$ = [].slice, arrayFrom$ = Array.from || function(x){return slice$.call(x);};
+  var bencode, debug, ref$, EventEmitter, http, inherits, isIP, fetch, simplePeer, wrtc, PEER_CONNECTION_TIMEOUT, SIMPLE_PEER_OPTS, x$, slice$ = [].slice, arrayFrom$ = Array.from || function(x){return slice$.call(x);};
   bencode = require('bencode');
-  debug = require('debug')('webtorrent-dht');
+  debug = (typeof (ref$ = require('debug')) == 'function' ? ref$('webtorrent-dht') : void 8) || function(){};
   EventEmitter = require('events').EventEmitter;
   http = require('http');
   inherits = require('inherits');
@@ -11627,31 +11627,37 @@ exports.RTCSessionDescription = window.RTCSessionDescription;
       request.on('data', function(chunk){
         body += chunk;
       }).on('end', function(){
-        var x$;
-        x$ = this$._prepare_connection(false);
-        x$.once('signal', function(signal){
-          debug('got signal for HTTP (server): %s', signal);
-          signal.extensions = this$._extensions;
-          signal = JSON.stringify(signal);
-          if (!response.finished) {
-            response.setHeader('Access-Control-Allow-Origin', '*');
-            response.write(signal);
-            response.end();
-          }
-        });
-        x$.once('connect', function(){
-          if (!response.finished) {
-            response.writeHead(500);
-            response.end();
-          }
-        });
-        x$.once('close', function(){
-          if (!response.finished) {
-            response.writeHead(500);
-            response.end();
-          }
-        });
-        x$.signal(JSON.parse(body));
+        var x$, e;
+        try {
+          x$ = this$._prepare_connection(false);
+          x$.once('signal', function(signal){
+            debug('got signal for HTTP (server): %s', signal);
+            signal.extensions = this$._extensions;
+            signal = JSON.stringify(signal);
+            if (!response.finished) {
+              response.setHeader('Access-Control-Allow-Origin', '*');
+              response.write(signal);
+              response.end();
+            }
+          });
+          x$.once('connect', function(){
+            if (!response.finished) {
+              response.writeHead(500);
+              response.end();
+            }
+          });
+          x$.once('close', function(){
+            if (!response.finished) {
+              response.writeHead(500);
+              response.end();
+            }
+          });
+          x$.signal(JSON.parse(body));
+        } catch (e$) {
+          e = e$;
+          response.writeHead(400);
+          response.end();
+        }
       }).setEncoding('utf8');
     });
     x$ = this.http_server;
