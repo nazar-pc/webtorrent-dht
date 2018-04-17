@@ -61,28 +61,32 @@ webrtc-socket::
 					body	+= chunk
 				)
 				.on('end', !~>
-					@_prepare_connection(false)
-						..once('signal', (signal) !~>
-							debug('got signal for HTTP (server): %s', signal)
-							# Append any supplied extensions
-							signal.extensions	= @_extensions
-							signal				= JSON.stringify(signal)
-							if !response.finished
-								response.setHeader('Access-Control-Allow-Origin', '*')
-								response.write(signal)
-								response.end()
-						)
-						..once('connect', !~>
-							if !response.finished
-								response.writeHead(500)
-								response.end()
-						)
-						..once('close', !->
-							if !response.finished
-								response.writeHead(500)
-								response.end()
-						)
-						..signal(JSON.parse(body))
+					try
+						@_prepare_connection(false)
+							..once('signal', (signal) !~>
+								debug('got signal for HTTP (server): %s', signal)
+								# Append any supplied extensions
+								signal.extensions	= @_extensions
+								signal				= JSON.stringify(signal)
+								if !response.finished
+									response.setHeader('Access-Control-Allow-Origin', '*')
+									response.write(signal)
+									response.end()
+							)
+							..once('connect', !~>
+								if !response.finished
+									response.writeHead(500)
+									response.end()
+							)
+							..once('close', !->
+								if !response.finished
+									response.writeHead(500)
+									response.end()
+							)
+							..signal(JSON.parse(body))
+					catch
+						response.writeHead(400)
+						response.end()
 				)
 				.setEncoding('utf8')
 		@http_server

@@ -68,31 +68,37 @@
       request.on('data', function(chunk){
         body += chunk;
       }).on('end', function(){
-        var x$;
-        x$ = this$._prepare_connection(false);
-        x$.once('signal', function(signal){
-          debug('got signal for HTTP (server): %s', signal);
-          signal.extensions = this$._extensions;
-          signal = JSON.stringify(signal);
-          if (!response.finished) {
-            response.setHeader('Access-Control-Allow-Origin', '*');
-            response.write(signal);
-            response.end();
-          }
-        });
-        x$.once('connect', function(){
-          if (!response.finished) {
-            response.writeHead(500);
-            response.end();
-          }
-        });
-        x$.once('close', function(){
-          if (!response.finished) {
-            response.writeHead(500);
-            response.end();
-          }
-        });
-        x$.signal(JSON.parse(body));
+        var x$, e;
+        try {
+          x$ = this$._prepare_connection(false);
+          x$.once('signal', function(signal){
+            debug('got signal for HTTP (server): %s', signal);
+            signal.extensions = this$._extensions;
+            signal = JSON.stringify(signal);
+            if (!response.finished) {
+              response.setHeader('Access-Control-Allow-Origin', '*');
+              response.write(signal);
+              response.end();
+            }
+          });
+          x$.once('connect', function(){
+            if (!response.finished) {
+              response.writeHead(500);
+              response.end();
+            }
+          });
+          x$.once('close', function(){
+            if (!response.finished) {
+              response.writeHead(500);
+              response.end();
+            }
+          });
+          x$.signal(JSON.parse(body));
+        } catch (e$) {
+          e = e$;
+          response.writeHead(400);
+          response.end();
+        }
       }).setEncoding('utf8');
     });
     x$ = this.http_server;
