@@ -157,7 +157,7 @@
             body: JSON.stringify(signal)
           };
           fetch("https://" + address + ":" + port, init)['catch'](function(e){
-            if (location.protocol === 'http:') {
+            if (typeof location === 'undefined' || location.protocol === 'http:') {
               return fetch("http://" + address + ":" + port, init);
             } else {
               throw e;

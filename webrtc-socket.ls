@@ -137,7 +137,7 @@ webrtc-socket::
 						# Prefer HTTPS connection if possible, otherwise fallback to insecure
 						fetch("https://#address:#port", init)
 							.catch (e) ->
-								if location.protocol == 'http:'
+								if typeof location == 'undefined' || location.protocol == 'http:'
 									fetch("http://#address:#port", init)
 								else
 									throw e
